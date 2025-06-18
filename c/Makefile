@@ -62,7 +62,7 @@ $(TEST_RUNNER): $(TEST_OBJECTS) $(STATIC_LIB)
 
 # Run tests
 test: $(TEST_RUNNER)
-	./$(TEST_RUNNER)
+	LD_LIBRARY_PATH=../output/binding:$$LD_LIBRARY_PATH ./$(TEST_RUNNER)
 
 # Clean build artifacts
 clean:
