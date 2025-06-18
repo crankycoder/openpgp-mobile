@@ -7,3 +7,5 @@
 vendor/
 output/
 tmp/
+
+.claude
