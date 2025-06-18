@@ -1,12 +1,11 @@
 #include "openpgp.h"
+#include "openpgp.h"
+#include "bridge_builder.h" 
+#include "bridge_reader.h"
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
 #include <dlfcn.h>
-
-/* FlatBuffers includes - for now we'll use a simplified approach
- * TODO: Add full flatcc integration once dependencies are resolved
- */
 
 /* Bridge function type */
 typedef struct {
@@ -122,20 +121,44 @@ openpgp_result_t openpgp_generate_key_with_options(const openpgp_options_t *opti
         return create_error_result(OPENPGP_ERROR_INVALID_INPUT, "Options cannot be NULL");
     }
 
-    /* Serialize the request */
-    char *request_json = serialize_generate_request(options);
-    if (!request_json) {
-        return create_error_result(OPENPGP_ERROR_MEMORY_ALLOCATION, 
-                                 "Failed to allocate memory for request");
+    /* Serialize the request using FlatBuffers */
+    void *request_buffer = NULL;
+    size_t request_size = 0;
+    openpgp_result_t serialize_result = serialize_generate_request(options, &request_buffer, &request_size);
+    if (serialize_result.error != OPENPGP_SUCCESS) {
+        return serialize_result;
     }
 
-    /* For now, return an error since we're sending JSON instead of FlatBuffer
-     * TODO: Implement proper FlatBuffer serialization before calling bridge
-     */
-    free(request_json);
+    /* Call the bridge */
+    BytesReturn *bridge_result = g_openpgp.bridge_call(
+        "generate", 
+        request_buffer, 
+        (int)request_size
+    );
     
-    return create_error_result(OPENPGP_ERROR_KEY_GENERATION_FAILED, 
-                             "Key generation not yet implemented - FlatBuffer serialization required");
+    free(request_buffer);
+
+    if (!bridge_result) {
+        return create_error_result(OPENPGP_ERROR_BRIDGE_CALL, "Bridge call returned NULL");
+    }
+
+    openpgp_result_t result;
+    if (bridge_result->error) {
+        result = create_error_result(OPENPGP_ERROR_KEY_GENERATION_FAILED, bridge_result->error);
+    } else {
+        result = parse_keypair_response(bridge_result->message, bridge_result->size);
+    }
+
+    /* Free bridge result memory */
+    if (bridge_result->message) {
+        free(bridge_result->message);
+    }
+    if (bridge_result->error) {
+        free(bridge_result->error);
+    }
+    free(bridge_result);
+
+    return result;
 }
 
 /*
@@ -212,79 +235,127 @@ static char *duplicate_string(const char *str) {
 }
 
 /* Forward declarations for internal helpers */
-static char *serialize_generate_request(const openpgp_options_t *options);
-static openpgp_result_t parse_keypair_response(const char *response, size_t response_size);
+static openpgp_result_t serialize_generate_request(const openpgp_options_t *options, void **buffer, size_t *buffer_size);
+static openpgp_result_t parse_keypair_response(const void *response, size_t response_size);
 
-/* Internal helper to serialize generate request using JSON as temporary approach */
-static char *serialize_generate_request(const openpgp_options_t *options) {
-    /* For now, create a simple JSON payload as a temporary workaround
-     * TODO: Replace with proper FlatBuffers serialization
-     */
+/* Internal helper to serialize generate request using FlatBuffers */
+static openpgp_result_t serialize_generate_request(const openpgp_options_t *options, void **buffer, size_t *buffer_size) {
+    /* Create FlatBuffer builder */
+    flatbuffers_builder_t *B = flatbuffers_builder_create();
+    if (!B) {
+        return create_error_result(OPENPGP_ERROR_MEMORY_ALLOCATION, "Failed to create FlatBuffer builder");
+    }
     
-    const char *name = options->name ? options->name : "";
-    const char *email = options->email ? options->email : "";
-    const char *comment = options->comment ? options->comment : "";
-    const char *passphrase = options->passphrase ? options->passphrase : "";
+    /* Create string references */
+    flatbuffers_string_ref_t name_ref = 0;
+    flatbuffers_string_ref_t email_ref = 0; 
+    flatbuffers_string_ref_t comment_ref = 0;
+    flatbuffers_string_ref_t passphrase_ref = 0;
     
-    /* Calculate required buffer size */
-    size_t size = snprintf(NULL, 0, 
-        "{\"name\":\"%s\",\"email\":\"%s\",\"comment\":\"%s\",\"passphrase\":\"%s\","
-        "\"key_options\":{\"algorithm\":%d,\"rsa_bits\":%d,\"hash\":%d,\"cipher\":%d,"
-        "\"compression\":%d,\"compression_level\":%d,\"curve\":%d}}",
-        name, email, comment, passphrase,
-        options->key_options.algorithm,
-        options->key_options.rsa_bits,
-        options->key_options.hash,
-        options->key_options.cipher,
-        options->key_options.compression,
-        options->key_options.compression_level,
-        options->key_options.curve
+    if (options->name) {
+        name_ref = flatbuffers_string_create_str(B, options->name);
+    }
+    if (options->email) {
+        email_ref = flatbuffers_string_create_str(B, options->email);
+    }
+    if (options->comment) {
+        comment_ref = flatbuffers_string_create_str(B, options->comment);
+    }
+    if (options->passphrase) {
+        passphrase_ref = flatbuffers_string_create_str(B, options->passphrase);
+    }
+    
+    /* Create KeyOptions */
+    model_KeyOptions_ref_t key_options_ref = model_KeyOptions_create(B,
+        (model_Algorithm_enum_t)options->key_options.algorithm,   /* algorithm */
+        (model_Curve_enum_t)options->key_options.curve,          /* curve */
+        (model_Hash_enum_t)options->key_options.hash,            /* hash */
+        (model_Cipher_enum_t)options->key_options.cipher,        /* cipher */
+        (model_Compression_enum_t)options->key_options.compression, /* compression */
+        options->key_options.compression_level,                   /* compression_level */
+        options->key_options.rsa_bits                            /* rsa_bits */
     );
     
-    char *json = malloc(size + 1);
-    if (!json) return NULL;
-    
-    snprintf(json, size + 1,
-        "{\"name\":\"%s\",\"email\":\"%s\",\"comment\":\"%s\",\"passphrase\":\"%s\","
-        "\"key_options\":{\"algorithm\":%d,\"rsa_bits\":%d,\"hash\":%d,\"cipher\":%d,"
-        "\"compression\":%d,\"compression_level\":%d,\"curve\":%d}}",
-        name, email, comment, passphrase,
-        options->key_options.algorithm,
-        options->key_options.rsa_bits,
-        options->key_options.hash,
-        options->key_options.cipher,
-        options->key_options.compression,
-        options->key_options.compression_level,
-        options->key_options.curve
+    /* Create Options */
+    model_Options_ref_t options_ref = model_Options_create(B,
+        name_ref,       /* name */
+        comment_ref,    /* comment */  
+        email_ref,      /* email */
+        passphrase_ref, /* passphrase */
+        key_options_ref /* key_options */
     );
     
-    return json;
+    /* Create GenerateRequest */
+    model_GenerateRequest_ref_t request_ref = model_GenerateRequest_create(B, options_ref);
+    
+    /* Finish buffer */
+    if (!flatbuffers_buffer_create(B, request_ref)) {
+        flatbuffers_builder_destroy(B);
+        return create_error_result(OPENPGP_ERROR_SERIALIZATION, "Failed to create FlatBuffer");
+    }
+    
+    /* Get buffer data */
+    *buffer_size = flatbuffers_builder_get_buffer_size(B);
+    void *data = malloc(*buffer_size);
+    if (!data) {
+        flatbuffers_builder_destroy(B);
+        return create_error_result(OPENPGP_ERROR_MEMORY_ALLOCATION, "Failed to allocate buffer");
+    }
+    
+    memcpy(data, flatbuffers_builder_get_direct_buffer(B), *buffer_size);
+    *buffer = data;
+    
+    flatbuffers_builder_destroy(B);
+    return create_success_result(NULL, 0);
 }
 
-/* Helper to parse keypair response */
-static openpgp_result_t parse_keypair_response(const char *response_data, size_t response_size) {
-    /* For now, expect JSON response as temporary workaround
-     * TODO: Replace with proper FlatBuffers deserialization
-     */
-    
-    (void)response_size; /* Suppress unused warning */
-    
-    if (!response_data) {
+/* Helper to parse keypair response using FlatBuffers */
+static openpgp_result_t parse_keypair_response(const void *response_data, size_t response_size) {
+    if (!response_data || response_size == 0) {
         return create_error_result(OPENPGP_ERROR_BRIDGE_CALL, "No response data");
     }
     
-    /* Very simple JSON parsing for demo - look for public_key and private_key fields */
-    const char *pub_start = strstr(response_data, "\"public_key\":\"");
-    const char *priv_start = strstr(response_data, "\"private_key\":\"");
-    
-    if (!pub_start || !priv_start) {
-        return create_error_result(OPENPGP_ERROR_SERIALIZATION, 
-                                 "Could not parse keypair from response");
+    /* Parse FlatBuffer response as KeyPairResponse */
+    model_KeyPairResponse_table_t response = model_KeyPairResponse_as_root(response_data);
+    if (!response) {
+        return create_error_result(OPENPGP_ERROR_SERIALIZATION, "Invalid FlatBuffer response");
     }
     
-    /* For now, return a simple error since we expect the bridge to fail
-     * TODO: Implement proper JSON/FlatBuffer parsing
-     */
-    return create_error_result(OPENPGP_ERROR_SERIALIZATION,
-                             "Key generation response parsing not fully implemented yet");
+    /* Check for error in response */
+    flatbuffers_string_t error_str = model_KeyPairResponse_error(response);
+    if (error_str && flatbuffers_string_len(error_str) > 0) {
+        char *error_msg = duplicate_string(error_str);
+        return create_error_result(OPENPGP_ERROR_KEY_GENERATION_FAILED, error_msg);
+    }
+    
+    /* Get output KeyPair */
+    model_KeyPair_table_t keypair_table = model_KeyPairResponse_output(response);
+    if (!keypair_table) {
+        return create_error_result(OPENPGP_ERROR_SERIALIZATION, "No keypair in response");
+    }
+    
+    /* Extract public and private keys */
+    flatbuffers_string_t public_key_str = model_KeyPair_public_key(keypair_table);
+    flatbuffers_string_t private_key_str = model_KeyPair_private_key(keypair_table);
+    
+    if (!public_key_str || !private_key_str) {
+        return create_error_result(OPENPGP_ERROR_SERIALIZATION, "Missing keys in response");
+    }
+    
+    /* Create C keypair structure */
+    openpgp_keypair_t *keypair = malloc(sizeof(openpgp_keypair_t));
+    if (!keypair) {
+        return create_error_result(OPENPGP_ERROR_MEMORY_ALLOCATION, "Failed to allocate keypair");
+    }
+    
+    keypair->public_key = duplicate_string(public_key_str);
+    keypair->private_key = duplicate_string(private_key_str);
+    
+    if (!keypair->public_key || !keypair->private_key) {
+        openpgp_keypair_free(keypair);
+        free(keypair);
+        return create_error_result(OPENPGP_ERROR_MEMORY_ALLOCATION, "Failed to copy key strings");
+    }
+    
+    return create_success_result(keypair, sizeof(openpgp_keypair_t));
 }
