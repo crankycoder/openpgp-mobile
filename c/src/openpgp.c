@@ -4,10 +4,9 @@
 #include <stdio.h>
 #include <dlfcn.h>
 
-/* TODO: FlatBuffers includes will be added once flatcc is available
-#include "bridge_builder.h"
-#include "bridge_reader.h"
-*/
+/* FlatBuffers includes - for now we'll use a simplified approach
+ * TODO: Add full flatcc integration once dependencies are resolved
+ */
 
 /* Bridge function type */
 typedef struct {
@@ -29,6 +28,8 @@ static struct {
 static openpgp_result_t create_error_result(openpgp_error_t error, const char *message);
 static openpgp_result_t create_success_result(void *data, size_t data_size);
 static char *duplicate_string(const char *str);
+static char *serialize_generate_request(const openpgp_options_t *options);
+static openpgp_result_t parse_keypair_response(const char *response_data, size_t response_size);
 
 /*
  * Library Initialization and Cleanup
@@ -121,8 +122,20 @@ openpgp_result_t openpgp_generate_key_with_options(const openpgp_options_t *opti
         return create_error_result(OPENPGP_ERROR_INVALID_INPUT, "Options cannot be NULL");
     }
 
-    /* TODO: Implement FlatBuffer serialization and bridge call */
-    return create_error_result(OPENPGP_ERROR_UNKNOWN, "Key generation not yet implemented");
+    /* Serialize the request */
+    char *request_json = serialize_generate_request(options);
+    if (!request_json) {
+        return create_error_result(OPENPGP_ERROR_MEMORY_ALLOCATION, 
+                                 "Failed to allocate memory for request");
+    }
+
+    /* For now, return an error since we're sending JSON instead of FlatBuffer
+     * TODO: Implement proper FlatBuffer serialization before calling bridge
+     */
+    free(request_json);
+    
+    return create_error_result(OPENPGP_ERROR_KEY_GENERATION_FAILED, 
+                             "Key generation not yet implemented - FlatBuffer serialization required");
 }
 
 /*
@@ -196,4 +209,82 @@ static char *duplicate_string(const char *str) {
         memcpy(dup, str, len);
     }
     return dup;
+}
+
+/* Forward declarations for internal helpers */
+static char *serialize_generate_request(const openpgp_options_t *options);
+static openpgp_result_t parse_keypair_response(const char *response, size_t response_size);
+
+/* Internal helper to serialize generate request using JSON as temporary approach */
+static char *serialize_generate_request(const openpgp_options_t *options) {
+    /* For now, create a simple JSON payload as a temporary workaround
+     * TODO: Replace with proper FlatBuffers serialization
+     */
+    
+    const char *name = options->name ? options->name : "";
+    const char *email = options->email ? options->email : "";
+    const char *comment = options->comment ? options->comment : "";
+    const char *passphrase = options->passphrase ? options->passphrase : "";
+    
+    /* Calculate required buffer size */
+    size_t size = snprintf(NULL, 0, 
+        "{\"name\":\"%s\",\"email\":\"%s\",\"comment\":\"%s\",\"passphrase\":\"%s\","
+        "\"key_options\":{\"algorithm\":%d,\"rsa_bits\":%d,\"hash\":%d,\"cipher\":%d,"
+        "\"compression\":%d,\"compression_level\":%d,\"curve\":%d}}",
+        name, email, comment, passphrase,
+        options->key_options.algorithm,
+        options->key_options.rsa_bits,
+        options->key_options.hash,
+        options->key_options.cipher,
+        options->key_options.compression,
+        options->key_options.compression_level,
+        options->key_options.curve
+    );
+    
+    char *json = malloc(size + 1);
+    if (!json) return NULL;
+    
+    snprintf(json, size + 1,
+        "{\"name\":\"%s\",\"email\":\"%s\",\"comment\":\"%s\",\"passphrase\":\"%s\","
+        "\"key_options\":{\"algorithm\":%d,\"rsa_bits\":%d,\"hash\":%d,\"cipher\":%d,"
+        "\"compression\":%d,\"compression_level\":%d,\"curve\":%d}}",
+        name, email, comment, passphrase,
+        options->key_options.algorithm,
+        options->key_options.rsa_bits,
+        options->key_options.hash,
+        options->key_options.cipher,
+        options->key_options.compression,
+        options->key_options.compression_level,
+        options->key_options.curve
+    );
+    
+    return json;
+}
+
+/* Helper to parse keypair response */
+static openpgp_result_t parse_keypair_response(const char *response_data, size_t response_size) {
+    /* For now, expect JSON response as temporary workaround
+     * TODO: Replace with proper FlatBuffers deserialization
+     */
+    
+    (void)response_size; /* Suppress unused warning */
+    
+    if (!response_data) {
+        return create_error_result(OPENPGP_ERROR_BRIDGE_CALL, "No response data");
+    }
+    
+    /* Very simple JSON parsing for demo - look for public_key and private_key fields */
+    const char *pub_start = strstr(response_data, "\"public_key\":\"");
+    const char *priv_start = strstr(response_data, "\"private_key\":\"");
+    
+    if (!pub_start || !priv_start) {
+        return create_error_result(OPENPGP_ERROR_SERIALIZATION, 
+                                 "Could not parse keypair from response");
+    }
+    
+    /* For now, return a simple error since we expect the bridge to fail
+     * TODO: Implement proper JSON/FlatBuffer parsing
+     */
+    return create_error_result(OPENPGP_ERROR_SERIALIZATION,
+                             "Key generation response parsing not fully implemented yet");
 }
