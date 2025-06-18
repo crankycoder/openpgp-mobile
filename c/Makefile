@@ -76,8 +76,8 @@ distclean: clean
 install: all
 	@echo "Install target not implemented yet"
 
-# Generate FlatBuffers headers (will be implemented in Task 0.2)
+# Generate FlatBuffers headers
 generate:
-	@echo "FlatBuffers generation not implemented yet"
+	$(MAKE) -C .. flatbuffers_c_wrapper
 
 .PHONY: all directories test clean distclean install generate

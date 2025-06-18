@@ -8,4 +8,9 @@ vendor/
 output/
 tmp/
 
+# C wrapper library
+c/generated/
+c/build/
+c/lib/
+
 .claude

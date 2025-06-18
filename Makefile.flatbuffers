@@ -41,3 +41,7 @@ flatbuffers_java:
 flatbuffers_c:
 	rm -rf output/flatbuffers/c && mkdir -p output/flatbuffers/c
 	docker run -v ./flatbuffers:/src -v ./output/flatbuffers/c:/dest neomantra/flatbuffers flatcc  -a -o /dest /src/bridge.fbs
+
+flatbuffers_c_wrapper: flatbuffers_c
+	rm -rf c/generated && mkdir -p c/generated
+	cp -r output/flatbuffers/c/* c/generated/
