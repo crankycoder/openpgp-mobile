@@ -15,8 +15,7 @@ flatbuffers_dart:
 	rm -rf output/flatbuffers/dart && mkdir -p output/flatbuffers/dart
 	flatc --dart --gen-mutable -o ./output/flatbuffers/dart flatbuffers/*.fbs
 
-flatbuffers_go:
-	rm -rf output/flatbuffers/go && mkdir -p output/flatbuffers/go
+flatbuffers_go: rm -rf output/flatbuffers/go && mkdir -p output/flatbuffers/go
 	flatc --go --gen-mutable -o ./output/flatbuffers/go flatbuffers/*.fbs
 	rm -rf bridge/model && mkdir -p bridge/model
 	cp -r output/flatbuffers/go/model bridge
@@ -38,3 +37,7 @@ flatbuffers_kotlin:
 flatbuffers_java:
 	rm -rf output/flatbuffers/java && mkdir -p output/flatbuffers/java
 	flatc --java --gen-mutable -o ./output/flatbuffers/java flatbuffers/*.fbs
+
+flatbuffers_c:
+	rm -rf output/flatbuffers/c && mkdir -p output/flatbuffers/c
+	docker run -v ./flatbuffers:/src -v ./output/flatbuffers/c:/dest neomantra/flatbuffers flatcc  -a -o /dest /src/bridge.fbs
