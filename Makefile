@@ -33,3 +33,15 @@ include Makefile.windows
 include Makefile.gomobile
 include Makefile.wasm
 include Makefile.flatbuffers
+
+# C wrapper library targets
+c-binding-deps: flatbuffers_c_wrapper binding
+
+c-binding:
+	$(MAKE) -C c
+
+c-test:
+	$(MAKE) -C c test
+
+c-clean:
+	$(MAKE) -C c clean
