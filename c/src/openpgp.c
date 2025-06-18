@@ -17,14 +17,12 @@ typedef struct {
 } BytesReturn;
 
 typedef BytesReturn* (*OpenPGPBridgeCall_fn)(char* name, void* payload, int payloadSize);
-typedef void (*OpenPGPFreeBytesReturn_fn)(BytesReturn* br);
 
 /* Global state */
 static struct {
     bool initialized;
     void *bridge_handle;
     OpenPGPBridgeCall_fn bridge_call;
-    OpenPGPFreeBytesReturn_fn bridge_free;
 } g_openpgp = {0};
 
 /* Internal helper functions */
@@ -56,12 +54,7 @@ openpgp_result_t openpgp_init(void) {
                                  "Failed to find OpenPGPBridgeCall symbol");
     }
 
-    g_openpgp.bridge_free = dlsym(g_openpgp.bridge_handle, "OpenPGPFreeBytesReturn");
-    if (!g_openpgp.bridge_free) {
-        dlclose(g_openpgp.bridge_handle);
-        return create_error_result(OPENPGP_ERROR_BRIDGE_CALL,
-                                 "Failed to find OpenPGPFreeBytesReturn symbol");
-    }
+    /* OpenPGPFreeBytesReturn is not available in current bridge, we'll manage memory ourselves */
 
     g_openpgp.initialized = true;
     return create_success_result(NULL, 0);
@@ -78,7 +71,6 @@ void openpgp_cleanup(void) {
     }
 
     g_openpgp.bridge_call = NULL;
-    g_openpgp.bridge_free = NULL;
     g_openpgp.initialized = false;
 }/*
  * Memory Management

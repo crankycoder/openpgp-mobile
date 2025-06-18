@@ -9,6 +9,7 @@ extern int test_basic_initialization(void);
 extern int test_error_handling(void);
 extern int test_memory_management(void);
 extern int test_helper_functions(void);
+extern int test_bridge_integration(void);
 
 int main(void) {
     printf(COLOR_BLUE "OpenPGP C Wrapper Library Tests" COLOR_RESET "\n");
@@ -23,6 +24,7 @@ int main(void) {
     RUN_TEST(error_handling);
     RUN_TEST(memory_management);
     RUN_TEST(helper_functions);
+    RUN_TEST(bridge_integration);
 
     /* Print summary */
     printf("\n======================================\n");
