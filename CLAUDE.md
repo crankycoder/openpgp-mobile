@@ -223,7 +223,7 @@ gh pr create --title "feat: description" --body-file /docs/CLAUDE_WORKSPACE/pr-t
 8. **Use worktrees for parallel work** - never work directly on dev/main
 9. **Check for duplicate files** - ensure no duplicate models/tests from copy-paste
 10. **Always update prompt journal** - at end of each session
-11. Build flatbuffer C bindings using: `make flatbuffer_c`
+11. Always use the Makefile to build flatbuffer C bindings using: `make flatbuffer_c`
 
 ## 🛡️ Protected Files Policy
 
@@ -406,3 +406,13 @@ Changes:
 - Fixed error status codes for invalid tokens
 - Added try-catch for malformed JWT parsing
 ```
+
+- # Workflow rules
+-
+- Always use docs/CLAUDE_WORKSPACE/pr-template.md for the PR template.
+- Always fill in as much detail as possible with the PR templates
+- Always use test driven development.
+- All tests must pass for a feature to be considered complete.
+- Features with no tests must be explicitly marked by a human with '@skiptest('some reason here')' in the task plan.
+- Don't use a TODO list in memory. use the markdown task list to organize work.
+- Always update the plan markdown after tests are run.
