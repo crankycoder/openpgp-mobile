@@ -14,6 +14,8 @@ extern int test_generate_key_basic(void);
 extern int test_generate_key_with_options(void);
 extern int test_generate_key_input_validation(void);
 extern int test_generate_key_without_init(void);
+extern int test_create_generate_request(void);
+extern int test_parse_keypair_response(void);
 
 int main(void) {
     printf(COLOR_BLUE "OpenPGP C Wrapper Library Tests" COLOR_RESET "\n");
@@ -38,6 +40,13 @@ int main(void) {
     RUN_TEST(generate_key_with_options);
     RUN_TEST(generate_key_input_validation);
     RUN_TEST(generate_key_without_init);
+    
+    printf("\n" COLOR_BLUE "FlatBuffer Tests" COLOR_RESET "\n");
+    printf("----------------\n");
+    
+    /* Run FlatBuffer tests */
+    RUN_TEST(create_generate_request);
+    RUN_TEST(parse_keypair_response);
 
     /* Print summary */
     printf("\n======================================\n");

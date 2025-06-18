@@ -144,6 +144,8 @@ openpgp_result_t openpgp_generate_key_with_options(const openpgp_options_t *opti
     openpgp_result_t result;
     if (bridge_result->error) {
         result = create_error_result(OPENPGP_ERROR_KEY_GENERATION_FAILED, bridge_result->error);
+    } else if (!bridge_result->message || bridge_result->size == 0) {
+        result = create_error_result(OPENPGP_ERROR_BRIDGE_CALL, "Bridge returned empty response");
     } else {
         result = parse_keypair_response(bridge_result->message, bridge_result->size);
     }
