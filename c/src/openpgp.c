@@ -1,5 +1,4 @@
 #include "openpgp.h"
-#include "openpgp.h"
 #include "bridge_builder.h" 
 #include "bridge_reader.h"
 #include <stdlib.h>
@@ -27,8 +26,8 @@ static struct {
 static openpgp_result_t create_error_result(openpgp_error_t error, const char *message);
 static openpgp_result_t create_success_result(void *data, size_t data_size);
 static char *duplicate_string(const char *str);
-static char *serialize_generate_request(const openpgp_options_t *options);
-static openpgp_result_t parse_keypair_response(const char *response_data, size_t response_size);
+static openpgp_result_t serialize_generate_request(const openpgp_options_t *options, void **buffer, size_t *buffer_size);
+static openpgp_result_t parse_keypair_response(const void *response_data, size_t response_size);
 
 /*
  * Library Initialization and Cleanup
@@ -234,16 +233,14 @@ static char *duplicate_string(const char *str) {
     return dup;
 }
 
-/* Forward declarations for internal helpers */
-static openpgp_result_t serialize_generate_request(const openpgp_options_t *options, void **buffer, size_t *buffer_size);
-static openpgp_result_t parse_keypair_response(const void *response, size_t response_size);
-
 /* Internal helper to serialize generate request using FlatBuffers */
 static openpgp_result_t serialize_generate_request(const openpgp_options_t *options, void **buffer, size_t *buffer_size) {
     /* Create FlatBuffer builder */
-    flatbuffers_builder_t *B = flatbuffers_builder_create();
-    if (!B) {
-        return create_error_result(OPENPGP_ERROR_MEMORY_ALLOCATION, "Failed to create FlatBuffer builder");
+    flatcc_builder_t builder;
+    flatcc_builder_t *B = &builder;
+    
+    if (flatcc_builder_init(B)) {
+        return create_error_result(OPENPGP_ERROR_MEMORY_ALLOCATION, "Failed to initialize FlatBuffer builder");
     }
     
     /* Create string references */
@@ -289,23 +286,24 @@ static openpgp_result_t serialize_generate_request(const openpgp_options_t *opti
     model_GenerateRequest_ref_t request_ref = model_GenerateRequest_create(B, options_ref);
     
     /* Finish buffer */
-    if (!flatbuffers_buffer_create(B, request_ref)) {
-        flatbuffers_builder_destroy(B);
+    if (!flatcc_builder_end_buffer(B, request_ref)) {
+        flatcc_builder_clear(B);
         return create_error_result(OPENPGP_ERROR_SERIALIZATION, "Failed to create FlatBuffer");
     }
     
     /* Get buffer data */
-    *buffer_size = flatbuffers_builder_get_buffer_size(B);
+    *buffer_size = flatcc_builder_get_buffer_size(B);
     void *data = malloc(*buffer_size);
     if (!data) {
-        flatbuffers_builder_destroy(B);
+        flatcc_builder_clear(B);
         return create_error_result(OPENPGP_ERROR_MEMORY_ALLOCATION, "Failed to allocate buffer");
     }
     
-    memcpy(data, flatbuffers_builder_get_direct_buffer(B), *buffer_size);
+    void *builder_buffer = flatcc_builder_get_direct_buffer(B, buffer_size);
+    memcpy(data, builder_buffer, *buffer_size);
     *buffer = data;
     
-    flatbuffers_builder_destroy(B);
+    flatcc_builder_clear(B);
     return create_success_result(NULL, 0);
 }
 

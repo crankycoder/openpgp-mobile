@@ -1,7 +1,7 @@
 # OpenPGP C Wrapper Library Makefile
 
 CC ?= gcc
-CFLAGS ?= -Wall -Wextra -std=c99 -fPIC -g
+CFLAGS ?= -Wall -Wextra -std=c99 -fPIC -g -Wno-misleading-indentation
 LDFLAGS ?= -shared
 AR ?= ar
 RANLIB ?= ranlib
