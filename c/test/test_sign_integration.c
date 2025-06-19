@@ -22,6 +22,12 @@ static bool validate_pgp_signature(const char *signature) {
         return true;
     }
     
+    // Check for signed message format (used by sign_data)
+    if (strstr(signature, "-----BEGIN PGP MESSAGE-----") &&
+        strstr(signature, "-----END PGP MESSAGE-----")) {
+        return true;
+    }
+    
     return false;
 }
 
@@ -143,6 +149,8 @@ TEST_CASE(sign_data_with_generated_key) {
             test_passed = true;
         } else {
             printf("  ✗ sign_data produced invalid signature format\n");
+            printf("  Debug: First 200 chars of signature:\n");
+            printf("  %.200s\n", signature);
         }
     } else {
         printf("  ✗ sign_data failed: %s\n", 
