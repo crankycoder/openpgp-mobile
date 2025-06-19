@@ -2466,17 +2466,21 @@ openpgp_result_t openpgp_verify(const char *signed_message,
     model_VerifyRequest_signature_add(B, signature_ref);
     model_VerifyRequest_message_add(B, message_ref);
     model_VerifyRequest_public_key_add(B, public_key_ref);
-    model_VerifyRequest_ref_t request = model_VerifyRequest_end(B);
+    model_VerifyRequest_end_as_root(B);
 
-    /* Finalize buffer */
-    flatbuffers_buffer_start(B, request);
+    /* Get the buffer */
     size_t size;
-    void *buffer = flatcc_builder_get_direct_buffer(B, &size);
+    void *buffer = flatcc_builder_finalize_aligned_buffer(B, &size);
+    if (!buffer) {
+        flatcc_builder_clear(B);
+        return create_error_result(OPENPGP_ERROR_SERIALIZATION, "Failed to serialize VerifyRequest");
+    }
 
     /* Call the bridge */
     BytesReturn *response = g_openpgp.bridge_call("verify", buffer, (int)size);
     
-    /* Clean up builder */
+    /* Free the builder and buffer */
+    flatcc_builder_aligned_free(buffer);
     flatcc_builder_clear(B);
 
     if (!response) {
