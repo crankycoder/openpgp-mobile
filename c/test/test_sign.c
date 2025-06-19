@@ -112,6 +112,15 @@ TEST_CASE(sign_message_with_passphrase) {
 TEST_CASE(sign_data_basic) {
     printf("Running test_sign_data_basic...\n");
     
+    // Initialize library
+    openpgp_result_t init_result = openpgp_init();
+    if (init_result.error != OPENPGP_SUCCESS) {
+        printf("Failed to initialize library: %s\n", init_result.error_message);
+        openpgp_result_free(&init_result);
+        return -1;
+    }
+    openpgp_result_free(&init_result);
+    
     openpgp_result_t result = openpgp_sign_data(
         test_message,
         test_private_key_alice,
