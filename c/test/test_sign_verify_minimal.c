@@ -38,7 +38,7 @@ TEST_CASE(minimal_sign_test) {
     }
     
     // Load fixture private key
-    FILE* key_file = fopen("test/gpg-test-keys/test-private-key.asc", "r");
+    FILE* key_file = fopen("c/test/gpg-test-keys/test-private-key.asc", "r");
     if (!key_file) {
         printf("  Could not load test private key\n");
         openpgp_cleanup();

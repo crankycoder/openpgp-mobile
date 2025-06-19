@@ -45,7 +45,7 @@ int g_major_tests_failed = 0; /* Failed major test functions */
 
 // Test key loading functions (will load from gpg-test-keys directory)
 static char* load_test_private_key_no_passphrase(void) {
-    const char* key_path = "test/gpg-test-keys/test-private-key.asc";
+    const char* key_path = "c/test/gpg-test-keys/test-private-key.asc";
     
     DEBUG_PRINT("Loading private key from %s", key_path);
     
@@ -83,7 +83,7 @@ static char* load_test_private_key_no_passphrase(void) {
 }
 
 static char* load_test_public_key_no_passphrase(void) {
-    const char* key_path = "test/gpg-test-keys/test-public-key.asc";
+    const char* key_path = "c/test/gpg-test-keys/test-public-key.asc";
     
     DEBUG_PRINT("Loading public key from %s", key_path);
     
