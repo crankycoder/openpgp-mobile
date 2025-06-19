@@ -49,6 +49,14 @@ extern int test_encrypt_null_recipients(void);
 extern int test_encrypt_zero_recipients(void);
 extern int test_decrypt_wrong_private_key(void);
 
+/* Key Generation Integration test declarations */
+extern int test_rsa_2048_generation_and_usage(void);
+extern int test_rsa_2048_with_passphrase_generation_and_usage(void);
+extern int test_ecdsa_p256_generation_and_usage(void);
+extern int test_ed25519_generation_and_usage(void);
+extern int test_multi_recipient_with_generated_keys(void);
+extern int test_key_metadata_extraction_on_generated_keys(void);
+
 int main(void) {
     printf(COLOR_BLUE "OpenPGP C Wrapper Library Tests" COLOR_RESET "\n");
     printf("======================================\n\n");
@@ -130,6 +138,17 @@ int main(void) {
     RUN_TEST(encrypt_null_recipients);
     RUN_TEST(encrypt_zero_recipients);
     RUN_TEST(decrypt_wrong_private_key);
+
+    printf("\n" COLOR_BLUE "Key Generation Integration Tests" COLOR_RESET "\n");
+    printf("--------------------------------\n");
+    
+    /* Run key generation integration tests */
+    RUN_TEST(rsa_2048_generation_and_usage);
+    RUN_TEST(rsa_2048_with_passphrase_generation_and_usage);
+    RUN_TEST(ecdsa_p256_generation_and_usage);
+    RUN_TEST(ed25519_generation_and_usage);
+    RUN_TEST(multi_recipient_with_generated_keys);
+    RUN_TEST(key_metadata_extraction_on_generated_keys);
 
     /* Print summary */
     printf("\n======================================\n");
