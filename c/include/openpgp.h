@@ -134,6 +134,47 @@ typedef struct {
     const char *passphrase;         /* Passphrase for private key */
 } openpgp_entity_t;
 
+/* Identity information in a key */
+typedef struct {
+    char *id;                       /* Identity ID */
+    char *name;                     /* User name */
+    char *email;                    /* Email address */
+    char *comment;                  /* Comment field */
+} openpgp_identity_t;
+
+/* Public key metadata */
+typedef struct {
+    char *algorithm;                /* Algorithm name (e.g., "RSA", "ECDSA") */
+    char *key_id;                   /* Full key ID */
+    char *key_id_short;             /* Short key ID (last 8 hex chars) */
+    char *creation_time;            /* Creation time in RFC3339 format */
+    char *fingerprint;              /* Key fingerprint */
+    char *key_id_numeric;           /* Numeric key ID */
+    bool is_sub_key;                /* True if this is a subkey */
+    bool can_sign;                  /* True if key can sign */
+    bool can_encrypt;               /* True if key can encrypt */
+    openpgp_identity_t *identities; /* Array of identities */
+    size_t identities_count;        /* Number of identities */
+    struct openpgp_public_key_metadata *sub_keys;  /* Array of subkeys */
+    size_t sub_keys_count;          /* Number of subkeys */
+} openpgp_public_key_metadata_t;
+
+/* Private key metadata */
+typedef struct {
+    char *key_id;                   /* Full key ID */
+    char *key_id_short;             /* Short key ID (last 8 hex chars) */
+    char *creation_time;            /* Creation time in RFC3339 format */
+    char *fingerprint;              /* Key fingerprint */
+    char *key_id_numeric;           /* Numeric key ID */
+    bool is_sub_key;                /* True if this is a subkey */
+    bool encrypted;                 /* True if key is encrypted */
+    bool can_sign;                  /* True if key can sign */
+    openpgp_identity_t *identities; /* Array of identities */
+    size_t identities_count;        /* Number of identities */
+    struct openpgp_private_key_metadata *sub_keys; /* Array of subkeys */
+    size_t sub_keys_count;          /* Number of subkeys */
+} openpgp_private_key_metadata_t;
+
 /*
  * Library Initialization and Cleanup
  */
@@ -168,7 +209,21 @@ void openpgp_result_free(openpgp_result_t *result);
  * 
  * @param keypair The keypair to free
  */
-void openpgp_keypair_free(openpgp_keypair_t *keypair);/*
+void openpgp_keypair_free(openpgp_keypair_t *keypair);
+
+/**
+ * Free an openpgp_public_key_metadata_t structure and its contents.
+ * 
+ * @param metadata The metadata to free
+ */
+void openpgp_public_key_metadata_free(openpgp_public_key_metadata_t *metadata);
+
+/**
+ * Free an openpgp_private_key_metadata_t structure and its contents.
+ * 
+ * @param metadata The metadata to free
+ */
+void openpgp_private_key_metadata_free(openpgp_private_key_metadata_t *metadata);/*
  * Key Generation
  */
 
@@ -189,6 +244,34 @@ openpgp_result_t openpgp_generate_key(const char *name, const char *email, const
  * @return Result containing openpgp_keypair_t on success
  */
 openpgp_result_t openpgp_generate_key_with_options(const openpgp_options_t *options);
+
+/*
+ * Key Operations
+ */
+
+/**
+ * Convert a private key to its corresponding public key.
+ * 
+ * @param private_key The private key in ASCII armor format
+ * @return Result containing the public key string on success
+ */
+openpgp_result_t openpgp_convert_private_to_public(const char *private_key);
+
+/**
+ * Get metadata for a public key.
+ * 
+ * @param public_key The public key in ASCII armor format
+ * @return Result containing openpgp_public_key_metadata_t on success
+ */
+openpgp_result_t openpgp_get_public_key_metadata(const char *public_key);
+
+/**
+ * Get metadata for a private key.
+ * 
+ * @param private_key The private key in ASCII armor format
+ * @return Result containing openpgp_private_key_metadata_t on success
+ */
+openpgp_result_t openpgp_get_private_key_metadata(const char *private_key);
 
 /*
  * Helper Functions
