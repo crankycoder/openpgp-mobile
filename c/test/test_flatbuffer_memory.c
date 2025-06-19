@@ -119,7 +119,9 @@ TEST_CASE(valgrind_availability) {
 
 // Task #2 FlatBuffer Builder Lifecycle Tests (TDD - these should fail initially)
 
-void test_builder_create_destroy_no_leak(void) {
+TEST_CASE(builder_create_destroy_no_leak) {
+    test_setup();
+    
     // EXPECT: This should fail initially due to memory leaks
     // Create builder
     flatbuffers_builder_t *builder = flatbuffers_builder_create(1024);
@@ -131,9 +133,13 @@ void test_builder_create_destroy_no_leak(void) {
     // Memory tracking should show no leaks
     TEST_ASSERT_FALSE_MESSAGE(memory_tracking_has_leaks(), 
                              "FlatBuffer builder lifecycle leaked memory");
+    
+    return test_teardown();
 }
 
-void test_builder_with_buffer_no_leak(void) {
+TEST_CASE(builder_with_buffer_no_leak) {
+    test_setup();
+    
     // EXPECT: This should fail initially due to memory leaks
     // Create builder
     flatbuffers_builder_t *builder = flatbuffers_builder_create(1024);
@@ -151,9 +157,13 @@ void test_builder_with_buffer_no_leak(void) {
     // Memory tracking should show no leaks
     TEST_ASSERT_FALSE_MESSAGE(memory_tracking_has_leaks(), 
                              "FlatBuffer builder with buffer leaked memory");
+    
+    return test_teardown();
 }
 
-void test_multiple_builders_no_interference(void) {
+TEST_CASE(multiple_builders_no_interference) {
+    test_setup();
+    
     // EXPECT: This should fail initially due to memory leaks or interference
     // Create multiple builders
     flatbuffers_builder_t *builder1 = flatbuffers_builder_create(512);
@@ -179,11 +189,15 @@ void test_multiple_builders_no_interference(void) {
     // Memory tracking should show no leaks
     TEST_ASSERT_FALSE_MESSAGE(memory_tracking_has_leaks(), 
                              "Multiple FlatBuffer builders leaked memory");
+    
+    return test_teardown();
 }
 
 // Task #3 serialize_generate_request Buffer Management Tests (TDD - should fail initially)
 
-void test_serialize_generate_minimal_request(void) {
+TEST_CASE(serialize_generate_minimal_request) {
+    test_setup();
+    
     // EXPECT: This should fail initially due to buffer overruns
     openpgp_options_t options = {0};
     options.name = "";
@@ -194,9 +208,6 @@ void test_serialize_generate_minimal_request(void) {
     openpgp_key_options_t key_options = {0};
     key_options.algorithm = OPENPGP_ALGORITHM_RSA;
     key_options.rsa_bits = 2048;
-    
-    size_t buffer_size;
-    uint8_t *buffer = NULL;
     
     // This function doesn't exist yet - we need to create it
     // For now, just test that we can create a minimal request without crashing
@@ -210,9 +221,13 @@ void test_serialize_generate_minimal_request(void) {
     
     TEST_ASSERT_FALSE_MESSAGE(memory_tracking_has_leaks(), 
                              "Minimal generate request serialization leaked memory");
+    
+    return test_teardown();
 }
 
-void test_serialize_generate_max_size_request(void) {
+TEST_CASE(serialize_generate_max_size_request) {
+    test_setup();
+    
     // EXPECT: This should fail initially due to buffer sizing issues
     openpgp_options_t options = {0};
     
@@ -253,31 +268,41 @@ void test_serialize_generate_max_size_request(void) {
     
     TEST_ASSERT_FALSE_MESSAGE(memory_tracking_has_leaks(), 
                              "Large generate request serialization leaked memory");
+    
+    return test_teardown();
 }
 
 // Main test runner
 int main(void) {
-    UNITY_BEGIN();
-    
     printf("=== FlatBuffer Memory Test Suite ===\n");
     printf("Running tests with memory tracking enabled\n\n");
     
     // Infrastructure tests
-    RUN_TEST(test_memory_tracking_basic_functionality);
-    RUN_TEST(test_valgrind_availability);
+    RUN_TEST(memory_tracking_basic_functionality);
+    RUN_TEST(valgrind_availability);
     
     // Basic FlatBuffer lifecycle tests (expected to fail initially)
     printf("\n--- Basic FlatBuffer Lifecycle Tests ---\n");
-    RUN_TEST(test_builder_create_destroy_no_leak);
-    RUN_TEST(test_builder_with_buffer_no_leak);
-    RUN_TEST(test_multiple_builders_no_interference);
+    RUN_TEST(builder_create_destroy_no_leak);
+    RUN_TEST(builder_with_buffer_no_leak);
+    RUN_TEST(multiple_builders_no_interference);
     
     // Buffer management tests (expected to fail initially)
     printf("\n--- Buffer Management Tests ---\n");
-    RUN_TEST(test_serialize_generate_minimal_request);
-    RUN_TEST(test_serialize_generate_max_size_request);
+    RUN_TEST(serialize_generate_minimal_request);
+    RUN_TEST(serialize_generate_max_size_request);
     
     printf("\n=== Test Suite Complete ===\n");
+    printf("Tests run: %d/%d major tests passed\n", 
+           g_major_tests_run - g_major_tests_failed, g_major_tests_run);
+    printf("Assertions: %d/%d subtests passed\n", 
+           g_tests_run - g_tests_failed, g_tests_run);
     
-    return UNITY_END();
+    if (g_major_tests_failed == 0) {
+        printf(COLOR_GREEN "ALL TESTS PASSED!" COLOR_RESET "\n");
+        return 0;
+    } else {
+        printf(COLOR_RED "%d TESTS FAILED!" COLOR_RESET "\n", g_major_tests_failed);
+        return 1;
+    }
 }
