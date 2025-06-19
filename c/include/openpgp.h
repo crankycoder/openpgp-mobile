@@ -175,6 +175,17 @@ typedef struct {
     size_t sub_keys_count;          /* Number of subkeys */
 } openpgp_private_key_metadata_t;
 
+/* Verification result */
+typedef struct {
+    bool is_valid;                  /* True if signature is valid */
+    char *signer_key_id;            /* Key ID of the signer */
+    char *signer_fingerprint;       /* Fingerprint of the signer */
+    char *original_data;            /* Original data (for signed messages) */
+    size_t original_data_len;       /* Length of original data */
+    char *signature_time;           /* Time signature was created (RFC3339 format) */
+    char *error_details;            /* Detailed error message if verification failed */
+} openpgp_verification_result_t;
+
 /*
  * Library Initialization and Cleanup
  */
@@ -223,7 +234,14 @@ void openpgp_public_key_metadata_free(openpgp_public_key_metadata_t *metadata);
  * 
  * @param metadata The metadata to free
  */
-void openpgp_private_key_metadata_free(openpgp_private_key_metadata_t *metadata);/*
+void openpgp_private_key_metadata_free(openpgp_private_key_metadata_t *metadata);
+
+/**
+ * Free an openpgp_verification_result_t structure and its contents.
+ * 
+ * @param result The verification result to free
+ */
+void openpgp_verification_result_free(openpgp_verification_result_t *result);/*
  * Key Generation
  */
 
@@ -530,6 +548,76 @@ openpgp_result_t openpgp_sign_data_bytes(const uint8_t *data, size_t data_len,
                                         const char *private_key,
                                         const char *passphrase,
                                         const openpgp_key_options_t *options);
+
+/*
+ * Verification Operations
+ */
+
+/**
+ * Verify a signed message and extract original content.
+ * 
+ * @param signed_message The signed message in ASCII armor format
+ * @param public_key The public key to verify against in ASCII armor format
+ * @param result Output parameter for verification details (allocated by function)
+ * @return Operation result with error code
+ * 
+ * Example:
+ *   openpgp_verification_result_t* result = NULL;
+ *   openpgp_result_t res = openpgp_verify(signed_msg, pub_key, &result);
+ *   if (res.error == OPENPGP_SUCCESS && result->is_valid) {
+ *       printf("Original: %s\n", result->original_data);
+ *   }
+ *   openpgp_verification_result_free(result);
+ */
+openpgp_result_t openpgp_verify(const char *signed_message,
+                               const char *public_key,
+                               openpgp_verification_result_t **result);
+
+/**
+ * Verify a detached signature against data.
+ * 
+ * @param data The original data that was signed
+ * @param data_len Length of the data
+ * @param signature The detached signature in ASCII armor format
+ * @param public_key The public key to verify against in ASCII armor format
+ * @param result Output parameter for verification details (allocated by function)
+ * @return Operation result with error code
+ */
+openpgp_result_t openpgp_verify_data(const void *data,
+                                    size_t data_len,
+                                    const char *signature,
+                                    const char *public_key,
+                                    openpgp_verification_result_t **result);
+
+/**
+ * Verify a file signature.
+ * 
+ * @param file_path Path to the file that was signed
+ * @param signature The signature (inline or detached) in ASCII armor format
+ * @param public_key The public key to verify against in ASCII armor format
+ * @param result Output parameter for verification details (allocated by function)
+ * @return Operation result with error code
+ */
+openpgp_result_t openpgp_verify_file(const char *file_path,
+                                    const char *signature,
+                                    const char *public_key,
+                                    openpgp_verification_result_t **result);
+
+/**
+ * Verify a signature against raw binary data.
+ * 
+ * @param data The binary data that was signed
+ * @param data_len Length of the binary data
+ * @param signature The signature in ASCII armor format
+ * @param public_key The public key to verify against in ASCII armor format
+ * @param result Output parameter for verification details (allocated by function)
+ * @return Operation result with error code
+ */
+openpgp_result_t openpgp_verify_bytes(const uint8_t *data,
+                                     size_t data_len,
+                                     const char *signature,
+                                     const char *public_key,
+                                     openpgp_verification_result_t **result);
 
 /*
  * Helper Functions
