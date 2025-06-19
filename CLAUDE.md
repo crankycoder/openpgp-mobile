@@ -1,5 +1,6 @@
-# Always read the local CLAUDE.md rules
+# Project Instructions
 
-Follow all the rules in .claude/CLAUDE.md
+Follow all the rules in ~/.claude/CLAUDE.md
 
+## Project-Specific Rules
 - Always commit after every change
