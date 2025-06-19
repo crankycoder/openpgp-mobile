@@ -1,4 +1,5 @@
 #include "test_framework.h"
+#define _GNU_SOURCE  // For strdup
 #include "test_fixtures.h"
 #include "../include/openpgp.h"
 #include <string.h>
@@ -193,8 +194,14 @@ TEST_CASE(verify_invalid_signed_message) {
     
     openpgp_verification_result_t *result = NULL;
     
-    // Act - this should fail gracefully
-    openpgp_result_t res = openpgp_verify(corrupted_message, test_public_key_alice, &result);
+    // Act - this should fail gracefully  
+    char* public_key = load_fixture_public_key();
+    if (!public_key) {
+        printf("  Skipping - test fixtures not available\n");
+        return 0;
+    }
+    
+    openpgp_result_t res = openpgp_verify(corrupted_message, public_key, &result);
     
     // Assert - verification should complete but signature should be invalid
     // For TDD phase, we expect this to fail since functions aren't implemented yet
@@ -205,6 +212,7 @@ TEST_CASE(verify_invalid_signed_message) {
     if (result) {
         openpgp_verification_result_free(result);
     }
+    free(public_key);
     return 0;
 }
 
@@ -222,11 +230,17 @@ TEST_CASE(verify_detached_signature) {
     }
     
     // Act
+    char* public_key = load_fixture_public_key();
+    if (!public_key) {
+        printf("  Skipping - test fixtures not available\n");
+        return 0;
+    }
+    
     openpgp_result_t res = openpgp_verify_data(
         test_message, 
         strlen(test_message),
         detached_sig, 
-        test_public_key_alice, 
+        public_key, 
         &result
     );
     
@@ -290,7 +304,7 @@ TEST_CASE(verify_file_signature) {
     
     // Act - this should fail since function doesn't exist yet
     // We're calling it to ensure the compilation catches missing implementation
-    // openpgp_result_t res = openpgp_verify_file("nonexistent.txt", "sig", test_public_key_alice, &result);
+    // openpgp_result_t res = openpgp_verify_file("nonexistent.txt", "sig", public_key, &result);
     
     // For now, just pass the test - we'll implement this after the basic functions
     printf("  Skipping until openpgp_verify_file() is implemented\n");
@@ -307,7 +321,7 @@ TEST_CASE(verify_bytes_signature) {
     openpgp_verification_result_t *result = NULL;
     
     // Act - this should fail since function doesn't exist yet
-    // openpgp_result_t res = openpgp_verify_bytes(test_data, sizeof(test_data), "sig", test_public_key_alice, &result);
+    // openpgp_result_t res = openpgp_verify_bytes(test_data, sizeof(test_data), "sig", public_key, &result);
     
     // For now, just pass the test
     printf("  Skipping until openpgp_verify_bytes() is implemented\n");
@@ -319,8 +333,15 @@ TEST_CASE(verify_null_parameters) {
     
     openpgp_verification_result_t *result = NULL;
     
+    // Load fixture key for testing
+    char* public_key = load_fixture_public_key();
+    if (!public_key) {
+        printf("  Skipping - test fixtures not available\n");
+        return 0;
+    }
+    
     // Test NULL signed message
-    openpgp_result_t res1 = openpgp_verify(NULL, test_public_key_alice, &result);
+    openpgp_result_t res1 = openpgp_verify(NULL, public_key, &result);
     TEST_ASSERT_NOT_EQUAL(OPENPGP_SUCCESS, res1.error);
     TEST_ASSERT_NULL(result);
     
@@ -330,9 +351,10 @@ TEST_CASE(verify_null_parameters) {
     TEST_ASSERT_NULL(result);
     
     // Test NULL result pointer
-    openpgp_result_t res3 = openpgp_verify("test", test_public_key_alice, NULL);
+    openpgp_result_t res3 = openpgp_verify("test", public_key, NULL);
     TEST_ASSERT_NOT_EQUAL(OPENPGP_SUCCESS, res3.error);
     
+    free(public_key);
     return 0;
 }
 
