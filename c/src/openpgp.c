@@ -2070,3 +2070,30 @@ openpgp_result_t openpgp_sign_data(const char *message,
     
     return create_success_result(signature_copy, strlen(signature_copy) + 1);
 }
+
+openpgp_result_t openpgp_sign_file(const char *input_file,
+                                  const char *private_key,
+                                  const char *passphrase,
+                                  const openpgp_key_options_t *options) {
+    /* TODO: Implement file signing */
+    return create_error_result(OPENPGP_ERROR_BRIDGE_CALL, 
+                             "File signing not yet implemented");
+}
+
+openpgp_result_t openpgp_sign_bytes(const uint8_t *data, size_t data_len,
+                                   const char *private_key,
+                                   const char *passphrase,
+                                   const openpgp_key_options_t *options) {
+    /* TODO: Implement byte array signing */
+    return create_error_result(OPENPGP_ERROR_BRIDGE_CALL, 
+                             "Binary data signing not yet implemented");
+}
+
+openpgp_result_t openpgp_sign_data_bytes(const uint8_t *data, size_t data_len,
+                                        const char *private_key,
+                                        const char *passphrase,
+                                        const openpgp_key_options_t *options) {
+    /* TODO: Implement data bytes signing */
+    return create_error_result(OPENPGP_ERROR_BRIDGE_CALL, 
+                             "Data bytes signing not yet implemented");
+}

@@ -216,13 +216,13 @@ void test_sign_empty_message(void) {
 void run_signing_tests(void) {
     printf("\n=== Running Signing Operation Tests ===\n");
     
-    RUN_TEST(test_sign_message_basic);
-    RUN_TEST(test_sign_message_with_passphrase);
-    RUN_TEST(test_sign_data_basic);
-    RUN_TEST(test_sign_bytes_basic);
-    RUN_TEST(test_sign_with_invalid_key);
-    RUN_TEST(test_sign_with_wrong_passphrase);
-    RUN_TEST(test_sign_empty_message);
+    RUN_TEST(sign_message_basic);
+    RUN_TEST(sign_message_with_passphrase);
+    RUN_TEST(sign_data_basic);
+    RUN_TEST(sign_bytes_basic);
+    RUN_TEST(sign_with_invalid_key);
+    RUN_TEST(sign_with_wrong_passphrase);
+    RUN_TEST(sign_empty_message);
     
     printf("=== Signing Tests Complete ===\n\n");
 }
