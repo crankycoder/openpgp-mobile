@@ -9,7 +9,7 @@ set -e
 # Configuration
 VALGRIND_OPTS="--leak-check=full --show-leak-kinds=all --track-origins=yes --error-exitcode=1"
 VALGRIND_SUPPRESSIONS=""
-TEST_EXECUTABLE="./test_flatbuffer_memory"
+TEST_EXECUTABLE="../build/test_flatbuffer_memory"
 LOG_DIR="./valgrind_logs"
 TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
 
