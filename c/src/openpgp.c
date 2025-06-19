@@ -362,3 +362,424 @@ static openpgp_result_t parse_keypair_response(const void *response_data, size_t
     
     return create_success_result(keypair, sizeof(openpgp_keypair_t));
 }
+
+/*
+ * Key Operations
+ */
+
+openpgp_result_t openpgp_convert_private_to_public(const char *private_key) {
+    if (!g_openpgp.initialized) {
+        return create_error_result(OPENPGP_ERROR_LIBRARY_NOT_INITIALIZED,
+                                 "Library not initialized");
+    }
+    
+    if (!private_key || strlen(private_key) == 0) {
+        return create_error_result(OPENPGP_ERROR_INVALID_INPUT,
+                                 "Private key is required");
+    }
+    
+    /* Build ConvertPrivateKeyToPublicKeyRequest */
+    flatcc_builder_t builder;
+    flatcc_builder_init(&builder);
+    
+    /* Create the request manually using start/add/end pattern */
+    model_ConvertPrivateKeyToPublicKeyRequest_start_as_root(&builder);
+    
+    /* Add private_key field */
+    flatbuffers_string_ref_t private_key_ref = flatbuffers_string_create_str(&builder, private_key);
+    model_ConvertPrivateKeyToPublicKeyRequest_private_key_add(&builder, private_key_ref);
+    
+    /* End the request */
+    model_ConvertPrivateKeyToPublicKeyRequest_end_as_root(&builder);
+    
+    /* Get buffer */
+    size_t size;
+    void *buffer = flatcc_builder_finalize_aligned_buffer(&builder, &size);
+    if (!buffer) {
+        flatcc_builder_clear(&builder);
+        return create_error_result(OPENPGP_ERROR_SERIALIZATION, 
+                                 "Failed to serialize ConvertPrivateKeyToPublicKeyRequest");
+    }
+    
+    /* Call bridge */
+    BytesReturn* response = g_openpgp.bridge_call("convertPrivateKeyToPublicKey", buffer, size);
+    
+    /* Free the builder and buffer */
+    flatcc_builder_aligned_free(buffer);
+    flatcc_builder_clear(&builder);
+    
+    /* Handle response */
+    if (!response) {
+        return create_error_result(OPENPGP_ERROR_BRIDGE_CALL, "Bridge call failed");
+    }
+    
+    /* Parse StringResponse */
+    model_StringResponse_table_t string_response = model_StringResponse_as_root(response->message);
+    if (!string_response) {
+        /* Free response if needed */
+        if (response->error) free(response->error);
+        if (response->message) free(response->message);
+        free(response);
+        return create_error_result(OPENPGP_ERROR_SERIALIZATION, "Failed to parse StringResponse");
+    }
+    
+    /* Check for error in response */
+    flatbuffers_string_t error = model_StringResponse_error(string_response);
+    if (error && strlen(error) > 0) {
+        char *error_copy = duplicate_string(error);
+        /* Free response */
+        if (response->error) free(response->error);
+        if (response->message) free(response->message);
+        free(response);
+        return create_error_result(OPENPGP_ERROR_BRIDGE_CALL, error_copy);
+    }
+    
+    /* Get the public key */
+    flatbuffers_string_t public_key_str = model_StringResponse_output(string_response);
+    if (!public_key_str) {
+        /* Free response */
+        if (response->error) free(response->error);
+        if (response->message) free(response->message);
+        free(response);
+        return create_error_result(OPENPGP_ERROR_SERIALIZATION, "No public key in response");
+    }
+    
+    /* Duplicate the public key string */
+    char *public_key_copy = duplicate_string(public_key_str);
+    if (!public_key_copy) {
+        /* Free response */
+        if (response->error) free(response->error);
+        if (response->message) free(response->message);
+        free(response);
+        return create_error_result(OPENPGP_ERROR_MEMORY_ALLOCATION, "Failed to copy public key");
+    }
+    
+    /* Free response */
+    if (response->error) free(response->error);
+    if (response->message) free(response->message);
+    free(response);
+    
+    return create_success_result(public_key_copy, strlen(public_key_copy) + 1);
+}
+
+openpgp_result_t openpgp_get_public_key_metadata(const char *public_key) {
+    if (!g_openpgp.initialized) {
+        return create_error_result(OPENPGP_ERROR_LIBRARY_NOT_INITIALIZED,
+                                 "Library not initialized");
+    }
+    
+    if (!public_key || strlen(public_key) == 0) {
+        return create_error_result(OPENPGP_ERROR_INVALID_INPUT,
+                                 "Public key is required");
+    }
+    
+    /* Build GetPublicKeyMetadataRequest */
+    flatcc_builder_t builder;
+    flatcc_builder_init(&builder);
+    
+    /* Create the request manually */
+    model_GetPublicKeyMetadataRequest_start_as_root(&builder);
+    
+    /* Add public_key field */
+    flatbuffers_string_ref_t public_key_ref = flatbuffers_string_create_str(&builder, public_key);
+    model_GetPublicKeyMetadataRequest_public_key_add(&builder, public_key_ref);
+    
+    /* End the request */
+    model_GetPublicKeyMetadataRequest_end_as_root(&builder);
+    
+    /* Get buffer */
+    size_t size;
+    void *buffer = flatcc_builder_finalize_aligned_buffer(&builder, &size);
+    if (!buffer) {
+        flatcc_builder_clear(&builder);
+        return create_error_result(OPENPGP_ERROR_SERIALIZATION, 
+                                 "Failed to serialize GetPublicKeyMetadataRequest");
+    }
+    
+    /* Call bridge */
+    BytesReturn* response = g_openpgp.bridge_call("getPublicKeyMetadata", buffer, size);
+    
+    /* Free the builder and buffer */
+    flatcc_builder_aligned_free(buffer);
+    flatcc_builder_clear(&builder);
+    
+    /* Handle response */
+    if (!response) {
+        return create_error_result(OPENPGP_ERROR_BRIDGE_CALL, "Bridge call failed");
+    }
+    
+    /* Parse PublicKeyMetadataResponse */
+    model_PublicKeyMetadataResponse_table_t metadata_response = model_PublicKeyMetadataResponse_as_root(response->message);
+    if (!metadata_response) {
+        /* Free response if needed */
+        if (response->error) free(response->error);
+        if (response->message) free(response->message);
+        free(response);
+        return create_error_result(OPENPGP_ERROR_SERIALIZATION, "Failed to parse PublicKeyMetadataResponse");
+    }
+    
+    /* Check for error in response */
+    flatbuffers_string_t error = model_PublicKeyMetadataResponse_error(metadata_response);
+    if (error && strlen(error) > 0) {
+        char *error_copy = duplicate_string(error);
+        /* Free response */
+        if (response->error) free(response->error);
+        if (response->message) free(response->message);
+        free(response);
+        return create_error_result(OPENPGP_ERROR_BRIDGE_CALL, error_copy);
+    }
+    
+    /* Get the metadata */
+    model_PublicKeyMetadata_table_t fb_metadata = model_PublicKeyMetadataResponse_output(metadata_response);
+    if (!fb_metadata) {
+        /* Free response */
+        if (response->error) free(response->error);
+        if (response->message) free(response->message);
+        free(response);
+        return create_error_result(OPENPGP_ERROR_SERIALIZATION, "No metadata in response");
+    }
+    
+    /* Allocate C metadata structure */
+    openpgp_public_key_metadata_t *metadata = calloc(1, sizeof(openpgp_public_key_metadata_t));
+    if (!metadata) {
+        /* Free response */
+        if (response->error) free(response->error);
+        if (response->message) free(response->message);
+        free(response);
+        return create_error_result(OPENPGP_ERROR_MEMORY_ALLOCATION, "Failed to allocate metadata");
+    }
+    
+    /* Extract fields from FlatBuffer metadata */
+    metadata->algorithm = duplicate_string(model_PublicKeyMetadata_algorithm(fb_metadata));
+    metadata->key_id = duplicate_string(model_PublicKeyMetadata_key_id(fb_metadata));
+    metadata->key_id_short = duplicate_string(model_PublicKeyMetadata_key_id_short(fb_metadata));
+    metadata->creation_time = duplicate_string(model_PublicKeyMetadata_creation_time(fb_metadata));
+    metadata->fingerprint = duplicate_string(model_PublicKeyMetadata_fingerprint(fb_metadata));
+    metadata->key_id_numeric = duplicate_string(model_PublicKeyMetadata_key_id_numeric(fb_metadata));
+    metadata->is_sub_key = model_PublicKeyMetadata_is_sub_key(fb_metadata);
+    metadata->can_sign = model_PublicKeyMetadata_can_sign(fb_metadata);
+    metadata->can_encrypt = model_PublicKeyMetadata_can_encrypt(fb_metadata);
+    
+    /* Extract identities */
+    model_Identity_vec_t identities = model_PublicKeyMetadata_identities(fb_metadata);
+    if (identities) {
+        size_t count = model_Identity_vec_len(identities);
+        if (count > 0) {
+            metadata->identities = calloc(count, sizeof(openpgp_identity_t));
+            if (metadata->identities) {
+                metadata->identities_count = count;
+                for (size_t i = 0; i < count; i++) {
+                    model_Identity_table_t fb_identity = model_Identity_vec_at(identities, i);
+                    if (fb_identity) {
+                        metadata->identities[i].id = duplicate_string(model_Identity_id(fb_identity));
+                        metadata->identities[i].name = duplicate_string(model_Identity_name(fb_identity));
+                        metadata->identities[i].email = duplicate_string(model_Identity_email(fb_identity));
+                        metadata->identities[i].comment = duplicate_string(model_Identity_comment(fb_identity));
+                    }
+                }
+            }
+        }
+    }
+    
+    /* Note: Subkeys extraction would be similar but more complex due to nested structure */
+    /* For now, we'll leave sub_keys as NULL */
+    
+    /* Free response */
+    if (response->error) free(response->error);
+    if (response->message) free(response->message);
+    free(response);
+    
+    return create_success_result(metadata, sizeof(openpgp_public_key_metadata_t));
+}
+
+openpgp_result_t openpgp_get_private_key_metadata(const char *private_key) {
+    if (!g_openpgp.initialized) {
+        return create_error_result(OPENPGP_ERROR_LIBRARY_NOT_INITIALIZED,
+                                 "Library not initialized");
+    }
+    
+    if (!private_key || strlen(private_key) == 0) {
+        return create_error_result(OPENPGP_ERROR_INVALID_INPUT,
+                                 "Private key is required");
+    }
+    
+    /* Build GetPrivateKeyMetadataRequest */
+    flatcc_builder_t builder;
+    flatcc_builder_init(&builder);
+    
+    /* Create the request manually */
+    model_GetPrivateKeyMetadataRequest_start_as_root(&builder);
+    
+    /* Add private_key field */
+    flatbuffers_string_ref_t private_key_ref = flatbuffers_string_create_str(&builder, private_key);
+    model_GetPrivateKeyMetadataRequest_private_key_add(&builder, private_key_ref);
+    
+    /* End the request */
+    model_GetPrivateKeyMetadataRequest_end_as_root(&builder);
+    
+    /* Get buffer */
+    size_t size;
+    void *buffer = flatcc_builder_finalize_aligned_buffer(&builder, &size);
+    if (!buffer) {
+        flatcc_builder_clear(&builder);
+        return create_error_result(OPENPGP_ERROR_SERIALIZATION, 
+                                 "Failed to serialize GetPrivateKeyMetadataRequest");
+    }
+    
+    /* Call bridge */
+    BytesReturn* response = g_openpgp.bridge_call("getPrivateKeyMetadata", buffer, size);
+    
+    /* Free the builder and buffer */
+    flatcc_builder_aligned_free(buffer);
+    flatcc_builder_clear(&builder);
+    
+    /* Handle response */
+    if (!response) {
+        return create_error_result(OPENPGP_ERROR_BRIDGE_CALL, "Bridge call failed");
+    }
+    
+    /* Parse PrivateKeyMetadataResponse */
+    model_PrivateKeyMetadataResponse_table_t metadata_response = model_PrivateKeyMetadataResponse_as_root(response->message);
+    if (!metadata_response) {
+        /* Free response if needed */
+        if (response->error) free(response->error);
+        if (response->message) free(response->message);
+        free(response);
+        return create_error_result(OPENPGP_ERROR_SERIALIZATION, "Failed to parse PrivateKeyMetadataResponse");
+    }
+    
+    /* Check for error in response */
+    flatbuffers_string_t error = model_PrivateKeyMetadataResponse_error(metadata_response);
+    if (error && strlen(error) > 0) {
+        char *error_copy = duplicate_string(error);
+        /* Free response */
+        if (response->error) free(response->error);
+        if (response->message) free(response->message);
+        free(response);
+        return create_error_result(OPENPGP_ERROR_BRIDGE_CALL, error_copy);
+    }
+    
+    /* Get the metadata */
+    model_PrivateKeyMetadata_table_t fb_metadata = model_PrivateKeyMetadataResponse_output(metadata_response);
+    if (!fb_metadata) {
+        /* Free response */
+        if (response->error) free(response->error);
+        if (response->message) free(response->message);
+        free(response);
+        return create_error_result(OPENPGP_ERROR_SERIALIZATION, "No metadata in response");
+    }
+    
+    /* Allocate C metadata structure */
+    openpgp_private_key_metadata_t *metadata = calloc(1, sizeof(openpgp_private_key_metadata_t));
+    if (!metadata) {
+        /* Free response */
+        if (response->error) free(response->error);
+        if (response->message) free(response->message);
+        free(response);
+        return create_error_result(OPENPGP_ERROR_MEMORY_ALLOCATION, "Failed to allocate metadata");
+    }
+    
+    /* Extract fields from FlatBuffer metadata */
+    metadata->key_id = duplicate_string(model_PrivateKeyMetadata_key_id(fb_metadata));
+    metadata->key_id_short = duplicate_string(model_PrivateKeyMetadata_key_id_short(fb_metadata));
+    metadata->creation_time = duplicate_string(model_PrivateKeyMetadata_creation_time(fb_metadata));
+    metadata->fingerprint = duplicate_string(model_PrivateKeyMetadata_fingerprint(fb_metadata));
+    metadata->key_id_numeric = duplicate_string(model_PrivateKeyMetadata_key_id_numeric(fb_metadata));
+    metadata->is_sub_key = model_PrivateKeyMetadata_is_sub_key(fb_metadata);
+    metadata->encrypted = model_PrivateKeyMetadata_encrypted(fb_metadata);
+    metadata->can_sign = model_PrivateKeyMetadata_can_sign(fb_metadata);
+    
+    /* Extract identities */
+    model_Identity_vec_t identities = model_PrivateKeyMetadata_identities(fb_metadata);
+    if (identities) {
+        size_t count = model_Identity_vec_len(identities);
+        if (count > 0) {
+            metadata->identities = calloc(count, sizeof(openpgp_identity_t));
+            if (metadata->identities) {
+                metadata->identities_count = count;
+                for (size_t i = 0; i < count; i++) {
+                    model_Identity_table_t fb_identity = model_Identity_vec_at(identities, i);
+                    if (fb_identity) {
+                        metadata->identities[i].id = duplicate_string(model_Identity_id(fb_identity));
+                        metadata->identities[i].name = duplicate_string(model_Identity_name(fb_identity));
+                        metadata->identities[i].email = duplicate_string(model_Identity_email(fb_identity));
+                        metadata->identities[i].comment = duplicate_string(model_Identity_comment(fb_identity));
+                    }
+                }
+            }
+        }
+    }
+    
+    /* Note: Subkeys extraction would be similar but more complex due to nested structure */
+    /* For now, we'll leave sub_keys as NULL */
+    
+    /* Free response */
+    if (response->error) free(response->error);
+    if (response->message) free(response->message);
+    free(response);
+    
+    return create_success_result(metadata, sizeof(openpgp_private_key_metadata_t));
+}
+
+/*
+ * Memory management for metadata structures
+ */
+
+void openpgp_public_key_metadata_free(openpgp_public_key_metadata_t *metadata) {
+    if (!metadata) return;
+    
+    /* Free string fields */
+    free(metadata->algorithm);
+    free(metadata->key_id);
+    free(metadata->key_id_short);
+    free(metadata->creation_time);
+    free(metadata->fingerprint);
+    free(metadata->key_id_numeric);
+    
+    /* Free identities */
+    if (metadata->identities) {
+        for (size_t i = 0; i < metadata->identities_count; i++) {
+            free(metadata->identities[i].id);
+            free(metadata->identities[i].name);
+            free(metadata->identities[i].email);
+            free(metadata->identities[i].comment);
+        }
+        free(metadata->identities);
+    }
+    
+    /* Free subkeys if implemented */
+    /* TODO: Implement recursive freeing of subkeys */
+    
+    /* Zero out and free the structure */
+    memset(metadata, 0, sizeof(*metadata));
+    free(metadata);
+}
+
+void openpgp_private_key_metadata_free(openpgp_private_key_metadata_t *metadata) {
+    if (!metadata) return;
+    
+    /* Free string fields */
+    free(metadata->key_id);
+    free(metadata->key_id_short);
+    free(metadata->creation_time);
+    free(metadata->fingerprint);
+    free(metadata->key_id_numeric);
+    
+    /* Free identities */
+    if (metadata->identities) {
+        for (size_t i = 0; i < metadata->identities_count; i++) {
+            free(metadata->identities[i].id);
+            free(metadata->identities[i].name);
+            free(metadata->identities[i].email);
+            free(metadata->identities[i].comment);
+        }
+        free(metadata->identities);
+    }
+    
+    /* Free subkeys if implemented */
+    /* TODO: Implement recursive freeing of subkeys */
+    
+    /* Zero out and free the structure */
+    memset(metadata, 0, sizeof(*metadata));
+    free(metadata);
+}

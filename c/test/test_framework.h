@@ -95,4 +95,29 @@ extern int g_major_tests_failed; /* Failed major test functions */
         } \
     } while (0)
 
+/* Test logging and control flow macros */
+#define TEST_START(name) \
+    do { \
+        printf("  %s: ", name); \
+    } while (0)
+
+#define TEST_PASS() \
+    do { \
+        printf(COLOR_GREEN "OK" COLOR_RESET "\n"); \
+        return 0; \
+    } while (0)
+
+#define TEST_FAIL() \
+    do { \
+        printf(COLOR_RED "FAILED" COLOR_RESET "\n"); \
+        return 1; \
+    } while (0)
+
+#define TEST_LOG(...) \
+    do { \
+        printf("    "); \
+        printf(__VA_ARGS__); \
+        printf("\n"); \
+    } while (0)
+
 #endif /* TEST_FRAMEWORK_H */
