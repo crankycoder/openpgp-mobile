@@ -127,6 +127,9 @@ openpgp_result_t openpgp_generate_key_with_options(const openpgp_options_t *opti
     if (serialize_result.error != OPENPGP_SUCCESS) {
         return serialize_result;
     }
+    
+    /* Debug: print buffer size */
+    printf("DEBUG: FlatBuffer request size: %zu\n", request_size);
 
     /* Call the bridge */
     BytesReturn *bridge_result = g_openpgp.bridge_call(

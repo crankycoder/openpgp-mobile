@@ -18,10 +18,13 @@ typedef struct flatcc_builder flatcc_builder_t;
 typedef uint64_t flatcc_builder_ref_t;
 typedef int flatcc_builder_vt_t;
 
-/* Builder stubs that return errors to test defensive code paths */
+/* Builder stubs - now with minimal working implementation */
 int flatcc_builder_init(flatcc_builder_t *B) {
-    (void)B;
-    return -1; /* Return failure to test error handling */
+    if (!B) return -1;
+    /* Initialize the builder to a valid state */
+    /* The actual structure is opaque, but we need to ensure it's not garbage */
+    memset(B, 0, sizeof(*B));
+    return 0; /* Return success */
 }
 
 void flatcc_builder_clear(flatcc_builder_t *B) {

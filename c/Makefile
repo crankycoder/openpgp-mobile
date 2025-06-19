@@ -39,8 +39,8 @@ all: directories $(STATIC_LIB) $(SHARED_LIB)
 directories:
 	@mkdir -p $(BUILDDIR) $(LIBDIR) $(GENERATED_DIR)
 
-# Static library
-$(STATIC_LIB): $(OBJECTS)
+# Static library (exclude flatcc_stubs.o)
+$(STATIC_LIB): $(filter-out build/flatcc_stubs.o, $(OBJECTS))
 	$(AR) rcs $@ $^
 	$(RANLIB) $@
 
@@ -57,7 +57,7 @@ $(BUILDDIR)/test_%.o: $(TESTDIR)/%.c
 	$(CC) $(CFLAGS) $(INCLUDES) -c $< -o $@
 
 # Test runner
-$(TEST_RUNNER): $(TEST_OBJECTS) $(STATIC_LIB)
+$(TEST_RUNNER): $(TEST_OBJECTS) $(STATIC_LIB) $(LIBDIR)/libflatccrt.a
 	$(CC) $(CFLAGS) $(INCLUDES) -o $@ $^ -ldl
 
 # Run tests

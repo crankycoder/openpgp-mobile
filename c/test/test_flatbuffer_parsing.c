@@ -5,7 +5,7 @@
 #include <string.h>
 
 /* Test that we can create and parse FlatBuffer requests */
-TEST_CASE(test_create_generate_request) {
+TEST_CASE(create_generate_request) {
     /* Initialize library */
     openpgp_result_t init_result = openpgp_init();
     if (init_result.error != OPENPGP_SUCCESS) {
@@ -74,7 +74,7 @@ TEST_CASE(test_create_generate_request) {
 }
 
 /* Test creating and parsing KeyPairResponse */
-TEST_CASE(test_parse_keypair_response) {
+TEST_CASE(parse_keypair_response) {
     flatcc_builder_t builder;
     flatcc_builder_t *B = &builder;
     
