@@ -274,6 +274,90 @@ openpgp_result_t openpgp_get_public_key_metadata(const char *public_key);
 openpgp_result_t openpgp_get_private_key_metadata(const char *private_key);
 
 /*
+ * Symmetric Encryption Operations
+ */
+
+/**
+ * Encrypt a message using symmetric encryption with a passphrase.
+ * 
+ * @param message The message to encrypt
+ * @param passphrase The passphrase for encryption
+ * @param file_hints File hints for the encrypted data (can be NULL)
+ * @param options Key options for encryption (can be NULL for defaults)
+ * @return Result containing the encrypted message string on success
+ */
+openpgp_result_t openpgp_encrypt_symmetric(const char *message, const char *passphrase, 
+                                          const openpgp_file_hints_t *file_hints,
+                                          const openpgp_key_options_t *options);
+
+/**
+ * Decrypt a message using symmetric decryption with a passphrase.
+ * 
+ * @param message The encrypted message to decrypt
+ * @param passphrase The passphrase for decryption
+ * @param options Key options for decryption (can be NULL for defaults)
+ * @return Result containing the decrypted message string on success
+ */
+openpgp_result_t openpgp_decrypt_symmetric(const char *message, const char *passphrase,
+                                          const openpgp_key_options_t *options);
+
+/**
+ * Encrypt a file using symmetric encryption with a passphrase.
+ * 
+ * @param input_file Path to the input file to encrypt
+ * @param output_file Path to the output encrypted file
+ * @param passphrase The passphrase for encryption
+ * @param file_hints File hints for the encrypted data (can be NULL)
+ * @param options Key options for encryption (can be NULL for defaults)
+ * @return Result with success/error status
+ */
+openpgp_result_t openpgp_encrypt_symmetric_file(const char *input_file, const char *output_file,
+                                               const char *passphrase,
+                                               const openpgp_file_hints_t *file_hints,
+                                               const openpgp_key_options_t *options);
+
+/**
+ * Decrypt a file using symmetric decryption with a passphrase.
+ * 
+ * @param input_file Path to the encrypted input file
+ * @param output_file Path to the output decrypted file
+ * @param passphrase The passphrase for decryption
+ * @param options Key options for decryption (can be NULL for defaults)
+ * @return Result with success/error status
+ */
+openpgp_result_t openpgp_decrypt_symmetric_file(const char *input_file, const char *output_file,
+                                               const char *passphrase,
+                                               const openpgp_key_options_t *options);
+
+/**
+ * Encrypt binary data using symmetric encryption with a passphrase.
+ * 
+ * @param data The binary data to encrypt
+ * @param data_len Length of the binary data
+ * @param passphrase The passphrase for encryption
+ * @param file_hints File hints for the encrypted data (can be NULL)
+ * @param options Key options for encryption (can be NULL for defaults)
+ * @return Result containing the encrypted data on success
+ */
+openpgp_result_t openpgp_encrypt_symmetric_bytes(const uint8_t *data, size_t data_len,
+                                                const char *passphrase,
+                                                const openpgp_file_hints_t *file_hints,
+                                                const openpgp_key_options_t *options);
+
+/**
+ * Decrypt binary data using symmetric decryption with a passphrase.
+ * 
+ * @param data The encrypted binary data to decrypt
+ * @param data_len Length of the encrypted binary data
+ * @param passphrase The passphrase for decryption
+ * @param options Key options for decryption (can be NULL for defaults)
+ * @return Result containing the decrypted data on success
+ */
+openpgp_result_t openpgp_decrypt_symmetric_bytes(const uint8_t *data, size_t data_len,
+                                                const char *passphrase,
+                                                const openpgp_key_options_t *options);
+
+/*
  * Helper Functions
  */
 
