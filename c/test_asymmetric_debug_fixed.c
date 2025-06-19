@@ -1,12 +1,12 @@
 #include "openpgp.h"
 #include <stdio.h>
 #include <string.h>
+#include <stdlib.h>
 
-// Simple test to debug asymmetric encryption
-int main(void) {
-    printf("Testing asymmetric encryption with debug output...\n");
-    
-    // Initialize library
+int main() {
+    printf("Testing asymmetric encryption with correct Go test keys...\n");
+
+    // Initialize the library
     openpgp_result_t init_result = openpgp_init();
     if (init_result.error != OPENPGP_SUCCESS) {
         printf("Failed to initialize: %s\n", init_result.error_message);
@@ -15,42 +15,10 @@ int main(void) {
     }
     printf("Library initialized successfully\n");
     openpgp_result_free(&init_result);
-    
-    // Test key and message (using real test keys from Go tests)
-    const char *test_message = "Hello, asymmetric encryption!";
-    const char *test_public_key = 
-        "-----BEGIN PGP PUBLIC KEY BLOCK-----\n"
-        "\n"
-        "xsBNBGZFFToBCADGr9nBnYiy73KzIfIGzmSOTsG4B1TnUkBfZovg8YuX3DW6\n"
-        "SDbL06NsEvXcFBC+VnQe1+DUX42LaQXWIFFcHQe6FrfGWTEY2AYl16BUIoQK\n"
-        "CJ0aOW7QNITWyFllOErqcaSrL4eEgoDUKUV6vQFW+lEZPYiDEVQB2/F32EAC\n"
-        "IihyI8PN11Ufu+0zXj2DnXPTN0CjSkKMJuroZ/DqGkQ6o4D9+/b9yfKRKtap\n"
-        "YsAWus0cG/LwLGBtXKYdYbZTdtXb/A9fBSNajBziu3PDJQKL+mTyPuxjclv2\n"
-        "Q5Yk2oIB2AjBK8XGHiwt5ICetvpgNXLAiml/rjQr/hZVzdPjtGCk9/aFABEB\n"
-        "AAHNFVNhbSA8c2FtQG9wZW5zb3J0LmlvPsLAigQQAQgAPgWCZkUVOgQLCQcI\n"
-        "CZDgEZ+mup4LZgMVCAoEFgACAQIZAQKbAwIeARYhBC8cy8/ZPTJTXuuxVuAR\n"
-        "n6a6ngtmAAAXxgf/YjduMfaNB842Kh55L9P+dPRWZlOOKw01GdvvLI5ew7+U\n"
-        "vHcXRZ5mb2rIx0ia7nzswPJVYumekm/o4dCl/RpT8jv1xsQB/5/celVJUT3v\n"
-        "X/lKgF7RRb4bBYxtYwOR2IGc+RP2sIuSnGt0cV0aR6f9rZEpsLYqtZLGZ358\n"
-        "9bSk2hQw4baTJDW5sn+m+Dz/7LS+kdfV5+1wkr4+4eYIVrqLSikARorvdSge\n"
-        "LM4zP9bNW0GBDDbSln0gVyT16xcuWQD+UCs+qxtfxubnT/On7Z9LB95La5Lr\n"
-        "7nkx8H2KPH+qY4ybhinwlzOgaUoqakLlPhgkKAvlak+oYqlvE+psrjybe87A\n"
-        "TQRmRRU6AQgAu/ramU2dmavnP2bL6drAxpjsxFmArBfpzwzAiDz9DFI7elwV\n"
-        "Y/yqieV0fvuYarB/f8lhcGwEQ11SLtWLpDuPiIUWOBuRPOCFjyshu2fpJPCG\n"
-        "8fmTycbyKvHuauyhcb2Q3vAatQ3x5uLf5o+a9J7NTBBPiRvIJ0x++lgLPLx9\n"
-        "iJUiqmvnaTWiR/cW+tAy4rdH7Equ+cU76eEYOyBGQn1nVBiFjgekUfLUZTvR\n"
-        "OAd2v3Yj3tDJ9MkFUsE8kL7tze7EFq2/ZuoeVXhpWXGoENuJirAi5keX9HwP\n"
-        "K32qAc63T0PofUDIVl52Zxl3pTYXL1QC4STtifmVxtd5PVys+zyRAwARAQAB\n"
-        "wsB2BBgBCAAqBYJmRRU6CZDgEZ+mup4LZgKbDBYhBC8cy8/ZPTJTXuuxVuAR\n"
-        "n6a6ngtmAACLDQf+JaZYB07DH2gKAfgzpOjhrm4BYfrMfC4A6Kc/f1MIy1jU\n"
-        "t23HBlcKXrHTvxiLu3MhcOtoaBE+VF+SWrz3Q6x91It5SbmMOFazJt+OD6c/\n"
-        "CiuUr291hJZE1kM0WCwqcKifUQwElenJPVnk5HRYv0WtMnsqCYmf2rMwEjDr\n"
-        "+TTHzjbu4JDoErgDDEJfeEIMD/g0zid4Q8jkU7pW8ClRNetRlQi+XwEYETR3\n"
-        "Ir+QTEH67dP841gPJHyS6foU80eowH9Ndl9NKIHpNu4ubc5/NIS+jank9xL5\n"
-        "CnWJHOOSOJ1iTODXF72eiHQuVRaH3mftjDwNMoys+snwBfhTUwQ+sMRPLA==\n"
-        "=LXdn\n"
-        "-----END PGP PUBLIC KEY BLOCK-----\n";
 
+    const char *test_message = "Hello, asymmetric encryption!";
+    
+    // Use the EXACT key from Go decrypt_test.go
     const char *test_private_key = 
         "-----BEGIN PGP PRIVATE KEY BLOCK-----\n"
         "\n"
@@ -108,15 +76,25 @@ int main(void) {
         "+TTHzjbu4JDoErgDDEJfeEIMD/g0zid4Q8jkU7pW8ClRNetRlQi+XwEYETR3\n"
         "Ir+QTEH67dP841gPJHyS6foU80eowH9Ndl9NKIHpNu4ubc5/NIS+jank9xL5\n"
         "CnWJHOOSOJ1iTODXF72eiHQuVRaH3mftjDwNMoys+snwBfhTUwQ+sMRPLA==\n"
-        "=LXdn\n"
-        "-----END PGP PRIVATE KEY BLOCK-----\n";
-    
-    const char *recipients[] = { test_public_key };
-    
+        "=oWIw\n"
+        "-----END PGP PRIVATE KEY BLOCK-----";
+
+    // Get the corresponding public key from the private key
+    printf("Extracting public key from private key...\n");
+    openpgp_result_t public_key_result = openpgp_convert_private_to_public(test_private_key);
+    if (public_key_result.error != OPENPGP_SUCCESS) {
+        printf("Failed to convert private to public key: %s\n", public_key_result.error_message);
+        openpgp_result_free(&public_key_result);
+        openpgp_cleanup();
+        return 1;
+    }
+    char *public_key = (char *)public_key_result.data;
+    printf("Successfully extracted public key\n");
+
+    // Encrypt with the public key  
     printf("Attempting to encrypt message: \"%s\"\n", test_message);
-    
-    // Try encryption
-    openpgp_result_t encrypt_result = openpgp_encrypt(test_message, recipients, 1, NULL);
+    const char *recipient_keys[] = {public_key};
+    openpgp_result_t encrypt_result = openpgp_encrypt(test_message, recipient_keys, 1, NULL);
     
     printf("Encryption result:\n");
     printf("  Error code: %d\n", encrypt_result.error);
@@ -127,9 +105,9 @@ int main(void) {
         char *encrypted = (char *)encrypt_result.data;
         printf("  Encrypted message (first 100 chars): %.100s\n", encrypted);
         
-        printf("\nAttempting to decrypt the encrypted message...\n");
+        printf("\nAttempting to decrypt the encrypted message with passphrase 'test'...\n");
         
-        // Try decryption with passphrase "test" (from Go tests)
+        // Try decryption with the correct passphrase from Go tests
         openpgp_result_t decrypt_result = openpgp_decrypt(encrypted, test_private_key, "test", NULL);
         
         printf("Decryption result:\n");
@@ -144,6 +122,8 @@ int main(void) {
                 printf("  ✓ Round-trip encryption/decryption successful!\n");
             } else {
                 printf("  ✗ Round-trip failed - messages don't match!\n");
+                printf("    Original: %s\n", test_message);
+                printf("    Decrypted: %s\n", (char *)decrypt_result.data);
             }
         } else {
             printf("  Decryption failed\n");
@@ -151,10 +131,11 @@ int main(void) {
         
         openpgp_result_free(&decrypt_result);
     } else {
-        printf("  Encryption failed as expected (bridge operation may not be implemented)\n");
+        printf("  Encryption failed\n");
     }
     
     openpgp_result_free(&encrypt_result);
+    openpgp_result_free(&public_key_result);
     
     // Cleanup
     openpgp_cleanup();
