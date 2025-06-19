@@ -271,7 +271,7 @@ void run_sign_integration_tests(void) {
     printf("\n=== Sign Integration Tests ===\n");
     
     RUN_TEST(sign_with_generated_rsa_key);
-    // TEMPORARILY DISABLED: RUN_TEST(sign_data_with_generated_key);
+    RUN_TEST(sign_data_with_generated_key);
     RUN_TEST(sign_bytes_with_generated_key);
     
     printf("=== Sign Integration Tests Complete ===\n\n");
