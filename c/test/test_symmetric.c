@@ -1,6 +1,7 @@
 #include "test_framework.h"
 #include "openpgp.h"
 #include <string.h>
+#include <unistd.h>
 
 /* Test data */
 static const char *TEST_MESSAGE = "Hello, world! This is a test message for symmetric encryption.";
@@ -191,9 +192,10 @@ TEST_CASE(symmetric_encrypt_decrypt_file) {
     fp = fopen(decrypted_file, "r");
     TEST_ASSERT_NOT_NULL(fp);
     char buffer[256];
-    fgets(buffer, sizeof(buffer), fp);
+    char *result = fgets(buffer, sizeof(buffer), fp);
     fclose(fp);
     
+    TEST_ASSERT_NOT_NULL(result);
     TEST_ASSERT_STRING_EQUAL(TEST_MESSAGE, buffer);
     
     /* Cleanup files */
