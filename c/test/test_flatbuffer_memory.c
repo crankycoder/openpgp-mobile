@@ -1,4 +1,4 @@
-#include "unity.h"
+#include "test_framework.h"
 #include "memory_helpers.h"
 #include "../include/openpgp.h"
 #include "../generated/bridge_builder.h"
@@ -7,23 +7,88 @@
 #include <stdlib.h>
 #include <string.h>
 
-// Test setup and teardown
-void setUp(void) {
+// Global variables for test framework
+int g_tests_run = 0;
+int g_tests_failed = 0;
+int g_major_tests_run = 0;
+int g_major_tests_failed = 0;
+
+// Additional macros needed for this test
+#define TEST_ASSERT_FALSE(condition) \
+    do { \
+        g_tests_run++; \
+        if (condition) { \
+            g_tests_failed++; \
+            printf(COLOR_RED "FAIL" COLOR_RESET " %s:%d: Expected false, got true: %s\n", \
+                   __FILE__, __LINE__, #condition); \
+            return 1; \
+        } \
+    } while (0)
+
+#define TEST_ASSERT_GREATER_THAN(lower, actual) \
+    do { \
+        g_tests_run++; \
+        if ((actual) <= (lower)) { \
+            g_tests_failed++; \
+            printf(COLOR_RED "FAIL" COLOR_RESET " %s:%d: Expected %d > %d\n", \
+                   __FILE__, __LINE__, (int)(actual), (int)(lower)); \
+            return 1; \
+        } \
+    } while (0)
+
+#define TEST_ASSERT_NOT_NULL_MESSAGE(ptr, msg) \
+    do { \
+        g_tests_run++; \
+        if ((ptr) == NULL) { \
+            g_tests_failed++; \
+            printf(COLOR_RED "FAIL" COLOR_RESET " %s:%d: %s\n", \
+                   __FILE__, __LINE__, msg); \
+            return 1; \
+        } \
+    } while (0)
+
+#define TEST_ASSERT_FALSE_MESSAGE(condition, msg) \
+    do { \
+        g_tests_run++; \
+        if (condition) { \
+            g_tests_failed++; \
+            printf(COLOR_RED "FAIL" COLOR_RESET " %s:%d: %s\n", \
+                   __FILE__, __LINE__, msg); \
+            return 1; \
+        } \
+    } while (0)
+
+#define TEST_ASSERT_GREATER_THAN_MESSAGE(lower, actual, msg) \
+    do { \
+        g_tests_run++; \
+        if ((actual) <= (lower)) { \
+            g_tests_failed++; \
+            printf(COLOR_RED "FAIL" COLOR_RESET " %s:%d: %s\n", \
+                   __FILE__, __LINE__, msg); \
+            return 1; \
+        } \
+    } while (0)
+
+// Test setup and teardown helpers
+static void test_setup(void) {
     memory_tracking_init();
 }
 
-void tearDown(void) {
+static int test_teardown(void) {
     if (memory_tracking_has_leaks()) {
         printf("\nMemory leaks detected in test!\n");
         memory_tracking_report();
-        TEST_FAIL_MESSAGE("Memory leaks detected");
+        return 1; // Test failed due to leaks
     }
     memory_tracking_cleanup();
+    return 0; // Test passed
 }
 
 // Task #1 Infrastructure Tests
 
-void test_memory_tracking_basic_functionality(void) {
+TEST_CASE(memory_tracking_basic_functionality) {
+    test_setup();
+    
     // Test that memory tracking itself doesn't leak
     size_t initial_count = memory_tracking_get_allocation_count();
     
@@ -35,15 +100,21 @@ void test_memory_tracking_basic_functionality(void) {
     TRACKED_FREE(ptr);
     TEST_ASSERT_EQUAL(initial_count, memory_tracking_get_allocation_count());
     TEST_ASSERT_EQUAL(0, memory_tracking_get_allocated_bytes());
+    
+    return test_teardown();
 }
 
-void test_valgrind_availability(void) {
+TEST_CASE(valgrind_availability) {
+    test_setup();
+    
     // Test that valgrind detection works
     bool available = is_valgrind_available();
     printf("Valgrind available: %s\n", available ? "yes" : "no");
     
     // This test always passes, just reports availability
     TEST_ASSERT_TRUE(true);
+    
+    return test_teardown();
 }
 
 // Task #2 FlatBuffer Builder Lifecycle Tests (TDD - these should fail initially)
