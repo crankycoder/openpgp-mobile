@@ -182,7 +182,15 @@ TEST_CASE(builder_with_buffer_no_leak) {
     int start_result = flatcc_builder_start_buffer(B, 0, 0, 0);
     TEST_ASSERT_EQUAL_MESSAGE(0, start_result, "Failed to start FlatBuffer");
     
-    // Get buffer 
+    // Create a minimal string to have some content
+    flatbuffers_string_ref_t test_string = flatbuffers_string_create_str(B, "test");
+    TEST_ASSERT_NOT_EQUAL_MESSAGE(0, test_string, "Failed to create test string");
+    
+    // End the buffer (required before getting buffer)
+    flatbuffers_buffer_ref_t buffer_ref = flatcc_builder_end_buffer(B, test_string);
+    TEST_ASSERT_NOT_EQUAL_MESSAGE(0, buffer_ref, "Failed to end buffer");
+    
+    // Now we can get buffer 
     size_t size;
     void *buffer = flatcc_builder_get_direct_buffer(B, &size);
     TEST_ASSERT_NOT_NULL_MESSAGE(buffer, "Failed to get buffer from builder");
@@ -223,6 +231,20 @@ TEST_CASE(multiple_builders_no_interference) {
     
     TEST_ASSERT_EQUAL_MESSAGE(0, start_result1, "Failed to start first buffer");
     TEST_ASSERT_EQUAL_MESSAGE(0, start_result2, "Failed to start second buffer");
+    
+    // Create different content for each builder
+    flatbuffers_string_ref_t string1 = flatbuffers_string_create_str(B1, "test1");
+    flatbuffers_string_ref_t string2 = flatbuffers_string_create_str(B2, "test2");
+    
+    TEST_ASSERT_NOT_EQUAL_MESSAGE(0, string1, "Failed to create first test string");
+    TEST_ASSERT_NOT_EQUAL_MESSAGE(0, string2, "Failed to create second test string");
+    
+    // End both buffers
+    flatbuffers_buffer_ref_t buffer_ref1 = flatcc_builder_end_buffer(B1, string1);
+    flatbuffers_buffer_ref_t buffer_ref2 = flatcc_builder_end_buffer(B2, string2);
+    
+    TEST_ASSERT_NOT_EQUAL_MESSAGE(0, buffer_ref1, "Failed to end first buffer");
+    TEST_ASSERT_NOT_EQUAL_MESSAGE(0, buffer_ref2, "Failed to end second buffer");
     
     size_t size1, size2;
     void *buffer1 = flatcc_builder_get_direct_buffer(B1, &size1);
