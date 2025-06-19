@@ -64,6 +64,29 @@ $(TEST_RUNNER): $(TEST_OBJECTS) $(STATIC_LIB) $(LIBDIR)/libflatccrt.a
 test: $(TEST_RUNNER)
 	LD_LIBRARY_PATH=../output/binding:$$LD_LIBRARY_PATH ./$(TEST_RUNNER)
 
+# Debug test executables
+DEBUG_TEST_SOURCES = $(TESTDIR)/test_sign_verify_debug.c $(TESTDIR)/test_sign_verify_minimal.c
+DEBUG_TEST_EXECUTABLES = $(DEBUG_TEST_SOURCES:$(TESTDIR)/%.c=$(BUILDDIR)/%)
+
+# Compile debug tests
+$(BUILDDIR)/test_sign_verify_debug: $(TESTDIR)/test_sign_verify_debug.c $(STATIC_LIB) $(LIBDIR)/libflatccrt.a
+	$(CC) $(CFLAGS) $(INCLUDES) -DDEBUG_VERBOSE=1 -DDEBUG_MEMORY=1 -o $@ $^ -ldl
+
+$(BUILDDIR)/test_sign_verify_minimal: $(TESTDIR)/test_sign_verify_minimal.c $(STATIC_LIB) $(LIBDIR)/libflatccrt.a
+	$(CC) $(CFLAGS) $(INCLUDES) -o $@ $^ -ldl
+
+# Run debug tests
+test-debug: $(BUILDDIR)/test_sign_verify_debug
+	@echo "Running debug test harness..."
+	cd .. && LD_LIBRARY_PATH=output/binding:$$LD_LIBRARY_PATH ./c/$(BUILDDIR)/test_sign_verify_debug
+
+test-minimal: $(BUILDDIR)/test_sign_verify_minimal
+	@echo "Running minimal debug tests..."
+	cd .. && LD_LIBRARY_PATH=output/binding:$$LD_LIBRARY_PATH ./c/$(BUILDDIR)/test_sign_verify_minimal
+
+# Run both debug tests
+test-all-debug: test-debug test-minimal
+
 # Clean build artifacts
 clean:
 	rm -rf $(BUILDDIR) $(LIBDIR)
