@@ -489,6 +489,49 @@ C Application -> C Wrapper (openpgp.h) -> FlatBuffers -> OpenPGPBridgeCall -> Go
 - Multi-recipient encryption works
 - Binary data handling is correct
 
+### Test Key Generation (Added for Decryption Debugging)
+
+**Objective**: Generate RSA 2048-bit test keypairs without passphrases to validate decryption functionality and resolve "unexpected EOF" errors.
+
+**Implementation**:
+1. **GPG Batch Configuration** (`gpg-batch-config.txt`):
+   ```
+   %echo Generating RSA 2048 test key without passphrase
+   Key-Type: RSA
+   Key-Length: 2048
+   Subkey-Type: RSA
+   Subkey-Length: 2048
+   Name-Real: Test User
+   Name-Email: test@example.com
+   Expire-Date: 0
+   %no-protection
+   %commit
+   %echo done
+   ```
+
+2. **Test Script** (`c/test/gpg-test-keys/generate-and-test.sh`):
+   - Creates temporary GPG home directory
+   - Generates keypair without passphrase
+   - Exports public and private keys in ASCII armor format
+   - Tests encryption/decryption with "hello world" message
+   - Generates C header file with embedded keys
+
+3. **C Integration**:
+   ```c
+   // Use generated keys without passphrase
+   openpgp_result_t decrypt_result = openpgp_decrypt(
+       encrypted_message, 
+       test_private_key_no_passphrase, 
+       NULL,  // No passphrase needed
+       NULL
+   );
+   ```
+
+**Expected Outcome**:
+- Resolve "privateKey error: unexpected EOF" issue
+- Complete round-trip encryption/decryption testing
+- Validate asymmetric operations without passphrase complications
+
 ## Phase 5: Signing Operations
 
 ### Tasks:

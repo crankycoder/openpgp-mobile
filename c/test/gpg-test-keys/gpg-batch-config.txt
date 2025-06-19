@@ -1,0 +1,11 @@
+%echo Generating RSA 2048 test key without passphrase
+Key-Type: RSA
+Key-Length: 2048
+Subkey-Type: RSA
+Subkey-Length: 2048
+Name-Real: Test User
+Name-Email: test@example.com
+Expire-Date: 0
+%no-protection
+%commit
+%echo done
