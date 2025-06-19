@@ -2084,9 +2084,111 @@ openpgp_result_t openpgp_sign_bytes(const uint8_t *data, size_t data_len,
                                    const char *private_key,
                                    const char *passphrase,
                                    const openpgp_key_options_t *options) {
-    /* TODO: Implement byte array signing */
-    return create_error_result(OPENPGP_ERROR_BRIDGE_CALL, 
-                             "Binary data signing not yet implemented");
+    /* Input validation */
+    if (!data || data_len == 0) {
+        return create_error_result(OPENPGP_ERROR_INVALID_INPUT, "Data cannot be null and length must be > 0");
+    }
+    if (!private_key) {
+        return create_error_result(OPENPGP_ERROR_INVALID_INPUT, "Private key cannot be null");
+    }
+    if (!g_openpgp.initialized) {
+        return create_error_result(OPENPGP_ERROR_LIBRARY_NOT_INITIALIZED,
+                                 "Library not initialized");
+    }
+
+    /* Build SignBytesRequest */
+    flatcc_builder_t builder;
+    flatcc_builder_init(&builder);
+    
+    /* Create the request manually */
+    model_SignBytesRequest_start_as_root(&builder);
+    
+    /* Add message field (as byte vector) */
+    flatbuffers_uint8_vec_ref_t message_ref = flatbuffers_uint8_vec_create(&builder, data, data_len);
+    model_SignBytesRequest_message_add(&builder, message_ref);
+    
+    /* Add private_key field */
+    flatbuffers_string_ref_t private_key_ref = flatbuffers_string_create_str(&builder, private_key);
+    model_SignBytesRequest_private_key_add(&builder, private_key_ref);
+    
+    /* Add passphrase field if provided */
+    if (passphrase) {
+        flatbuffers_string_ref_t passphrase_ref = flatbuffers_string_create_str(&builder, passphrase);
+        model_SignBytesRequest_passphrase_add(&builder, passphrase_ref);
+    }
+    
+    /* Add options field if provided */
+    if (options) {
+        model_KeyOptions_ref_t key_options_ref = build_key_options(&builder, options);
+        model_SignBytesRequest_options_add(&builder, key_options_ref);
+    }
+    
+    model_SignBytesRequest_end_as_root(&builder);
+    
+    /* Get the buffer */
+    size_t size;
+    void *buffer = flatcc_builder_finalize_aligned_buffer(&builder, &size);
+    if (!buffer) {
+        flatcc_builder_clear(&builder);
+        return create_error_result(OPENPGP_ERROR_SERIALIZATION,
+                                 "Failed to serialize SignBytesRequest");
+    }
+    
+    /* Call bridge */
+    BytesReturn* response = g_openpgp.bridge_call("signBytes", buffer, size);
+    
+    /* Free the builder and buffer */
+    flatcc_builder_aligned_free(buffer);
+    flatcc_builder_clear(&builder);
+    
+    /* Handle response - same pattern as other signing functions */
+    if (!response) {
+        return create_error_result(OPENPGP_ERROR_BRIDGE_CALL, "Bridge call failed");
+    }
+    
+    /* Parse StringResponse */
+    model_StringResponse_table_t string_response = model_StringResponse_as_root(response->message);
+    if (!string_response) {
+        if (response->error) free(response->error);
+        if (response->message) free(response->message);
+        free(response);
+        return create_error_result(OPENPGP_ERROR_SERIALIZATION, "Invalid response format");
+    }
+    
+    /* Check for errors */
+    flatbuffers_string_t error_str = model_StringResponse_error(string_response);
+    if (error_str && strlen(error_str) > 0) {
+        char *error_copy = duplicate_string(error_str);
+        if (response->error) free(response->error);
+        if (response->message) free(response->message);
+        free(response);
+        return create_error_result(OPENPGP_ERROR_SIGNING_FAILED, error_copy);
+    }
+    
+    /* Get the signature */
+    flatbuffers_string_t signature_str = model_StringResponse_output(string_response);
+    if (!signature_str) {
+        if (response->error) free(response->error);
+        if (response->message) free(response->message);
+        free(response);
+        return create_error_result(OPENPGP_ERROR_SERIALIZATION, "No signature in response");
+    }
+    
+    /* Duplicate the signature string */
+    char *signature_copy = duplicate_string(signature_str);
+    if (!signature_copy) {
+        if (response->error) free(response->error);
+        if (response->message) free(response->message);
+        free(response);
+        return create_error_result(OPENPGP_ERROR_MEMORY_ALLOCATION, "Failed to copy signature");
+    }
+    
+    /* Free response */
+    if (response->error) free(response->error);
+    if (response->message) free(response->message);
+    free(response);
+    
+    return create_success_result(signature_copy, strlen(signature_copy) + 1);
 }
 
 openpgp_result_t openpgp_sign_data_bytes(const uint8_t *data, size_t data_len,

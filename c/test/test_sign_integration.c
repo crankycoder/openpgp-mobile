@@ -165,12 +165,89 @@ TEST_CASE(sign_data_with_generated_key) {
     return test_passed ? 0 : -1;
 }
 
+TEST_CASE(sign_bytes_with_generated_key) {
+    printf("Running test: Generate key and test sign_bytes...\n");
+    
+    // Initialize library
+    openpgp_result_t init_result = openpgp_init();
+    if (init_result.error != OPENPGP_SUCCESS) {
+        printf("Failed to initialize library: %s\n", init_result.error_message);
+        openpgp_result_free(&init_result);
+        return -1;
+    }
+    openpgp_result_free(&init_result);
+    
+    // Generate simple key
+    openpgp_result_t gen_result = openpgp_generate_key("Test User", "test@example.com", NULL);
+    
+    if (gen_result.error != OPENPGP_SUCCESS) {
+        printf("  ✗ Key generation failed: %s\n", 
+               gen_result.error_message ? gen_result.error_message : "Unknown error");
+        openpgp_result_free(&gen_result);
+        openpgp_cleanup();
+        return -1;
+    }
+    
+    openpgp_keypair_t* keypair = (openpgp_keypair_t*)gen_result.data;
+    printf("  ✓ Keypair generated successfully\n");
+    
+    // Test sign_bytes function with binary data
+    printf("  Testing sign_bytes function...\n");
+    const uint8_t *test_data = (const uint8_t*)test_message;
+    size_t data_len = strlen(test_message);
+    
+    openpgp_result_t sign_result = openpgp_sign_bytes(
+        test_data,
+        data_len,
+        keypair->private_key,
+        NULL,  // No passphrase
+        NULL   // Default options
+    );
+    
+    bool test_passed = false;
+    if (sign_result.error == OPENPGP_SUCCESS && sign_result.data) {
+        char* signature = (char*)sign_result.data;
+        if (validate_pgp_signature(signature)) {
+            printf("  ✓ sign_bytes generated valid signature\n");
+            test_passed = true;
+        } else {
+            printf("  ✗ sign_bytes produced invalid signature format\n");
+            printf("  Debug: Signature length: %zu\n", strlen(signature));
+            // Check if it's ASCII
+            bool is_ascii = true;
+            for (int i = 0; i < 50 && signature[i]; i++) {
+                if (signature[i] < 32 && signature[i] != '\n' && signature[i] != '\r' && signature[i] != '\t') {
+                    is_ascii = false;
+                    break;
+                }
+            }
+            if (is_ascii) {
+                printf("  Debug: First 200 chars of signature:\n");
+                printf("  %.200s\n", signature);
+            } else {
+                printf("  Debug: Signature contains binary data (not ASCII)\n");
+            }
+        }
+    } else {
+        printf("  ✗ sign_bytes failed: %s\n", 
+               sign_result.error_message ? sign_result.error_message : "Unknown error");
+    }
+    
+    // Cleanup
+    openpgp_result_free(&gen_result);
+    openpgp_result_free(&sign_result);
+    openpgp_cleanup();
+    
+    return test_passed ? 0 : -1;
+}
+
 // Test runner for integration signing tests
 void run_sign_integration_tests(void) {
     printf("\n=== Sign Integration Tests ===\n");
     
     RUN_TEST(sign_with_generated_rsa_key);
     RUN_TEST(sign_data_with_generated_key);
+    RUN_TEST(sign_bytes_with_generated_key);
     
     printf("=== Sign Integration Tests Complete ===\n\n");
 }
