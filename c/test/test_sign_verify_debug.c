@@ -207,6 +207,97 @@ TEST_CASE(debug_memory_stress) {
 }
 
 /**
+ * Test 4: Bridge communication without crypto operations
+ * This tests that basic library bridge calls work
+ */
+TEST_CASE(debug_bridge_basic) {
+    DEBUG_PRINT("Testing basic bridge communication");
+    
+    // Initialize library first
+    openpgp_result_t init_result = openpgp_init();
+    TEST_ASSERT_EQUAL(OPENPGP_SUCCESS, init_result.error);
+    
+    DEBUG_PRINT("Bridge initialization successful");
+    
+    // Test that we can perform multiple init/cleanup cycles
+    openpgp_cleanup();
+    DEBUG_PRINT("First cleanup successful");
+    
+    init_result = openpgp_init();
+    TEST_ASSERT_EQUAL(OPENPGP_SUCCESS, init_result.error);
+    DEBUG_PRINT("Re-initialization successful");
+    
+    openpgp_cleanup();
+    DEBUG_PRINT("Bridge basic test complete");
+    return 0;
+}
+
+/**
+ * Test 5: Minimal sign operation with known key
+ * Test signing with hardcoded fixture key - simplest crypto operation
+ */
+TEST_CASE(debug_minimal_sign) {
+    DEBUG_PRINT("Testing minimal sign operation");
+    
+    // Initialize library
+    openpgp_result_t init_result = openpgp_init();
+    TEST_ASSERT_EQUAL(OPENPGP_SUCCESS, init_result.error);
+    
+    DEBUG_PRINT("Loading fixture private key");
+    char* private_key = load_test_private_key_no_passphrase();
+    TEST_ASSERT_NOT_NULL(private_key);
+    
+    DEBUG_PRINT("Testing signing empty string");
+    openpgp_result_t result = openpgp_sign("", private_key, NULL, NULL);
+    DEBUG_PRINT("Empty string sign result: error=%d", result.error);
+    
+    if (result.error == OPENPGP_SUCCESS) {
+        DEBUG_PRINT("✓ Empty string signing succeeded");
+        if (result.data) {
+            DEBUG_PRINT("✓ Got signature data (%zu chars)", strlen((char*)result.data));
+            openpgp_result_free(&result);
+        }
+    } else {
+        DEBUG_PRINT("Empty string signing failed: %s", 
+                   result.error_message ? result.error_message : "Unknown");
+        openpgp_result_free(&result);
+    }
+    
+    DEBUG_PRINT("Testing signing single character");
+    result = openpgp_sign("a", private_key, NULL, NULL);
+    DEBUG_PRINT("Single char sign result: error=%d", result.error);
+    
+    if (result.error == OPENPGP_SUCCESS) {
+        DEBUG_PRINT("✓ Single character signing succeeded");
+        openpgp_result_free(&result);
+    } else {
+        DEBUG_PRINT("Single character signing failed: %s", 
+                   result.error_message ? result.error_message : "Unknown");
+        openpgp_result_free(&result);
+    }
+    
+    DEBUG_PRINT("Testing signing 'test' message");
+    result = openpgp_sign("test", private_key, NULL, NULL);
+    DEBUG_PRINT("'test' sign result: error=%d", result.error);
+    
+    if (result.error == OPENPGP_SUCCESS) {
+        DEBUG_PRINT("✓ 'test' message signing succeeded");
+        openpgp_result_free(&result);
+    } else {
+        DEBUG_PRINT("'test' message signing failed: %s", 
+                   result.error_message ? result.error_message : "Unknown");
+        openpgp_result_free(&result);
+    }
+    
+    // Cleanup
+    free(private_key);
+    openpgp_cleanup();
+    
+    DEBUG_PRINT("Minimal sign test complete");
+    return 0;
+}
+
+/**
  * Test runner for debug tests
  */
 int main(void) {
@@ -223,6 +314,8 @@ int main(void) {
     RUN_TEST(debug_library_init);
     RUN_TEST(debug_key_loading);
     RUN_TEST(debug_memory_stress);
+    RUN_TEST(debug_bridge_basic);
+    RUN_TEST(debug_minimal_sign);
     
     printf("\n" COLOR_BLUE "Debug Test Results:" COLOR_RESET "\n");
     printf("Major tests: %d run, %d failed\n", g_major_tests_run, g_major_tests_failed);
