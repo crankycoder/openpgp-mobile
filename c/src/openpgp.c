@@ -128,13 +128,7 @@ openpgp_result_t openpgp_generate_key_with_options(const openpgp_options_t *opti
         return serialize_result;
     }
     
-    /* Debug: print buffer size and first few bytes */
-    printf("DEBUG: FlatBuffer request size: %zu\n", request_size);
-    if (request_size >= 8) {
-        unsigned char *bytes = (unsigned char *)request_buffer;
-        printf("DEBUG: First 8 bytes: %02x %02x %02x %02x %02x %02x %02x %02x\n",
-               bytes[0], bytes[1], bytes[2], bytes[3], bytes[4], bytes[5], bytes[6], bytes[7]);
-    }
+    /* Debug output removed - was too verbose */
 
     /* Call the bridge */
     BytesReturn *bridge_result = g_openpgp.bridge_call(

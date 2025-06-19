@@ -15,14 +15,9 @@ TEST_CASE(generate_key_basic) {
     openpgp_result_t result = openpgp_generate_key("Test User", "test@example.com", "testpass");
     
     /* Now that FlatBuffers are working, let's see what happens */
-    if (result.error == OPENPGP_SUCCESS) {
-        printf("      Key generation succeeded!\n");
-        TEST_ASSERT_NULL(result.error_message);
-        /* TODO: Verify the key pair data */
-    } else {
-        printf("      Key generation failed: %s\n", result.error_message);
-        /* This might fail if the Go bridge has issues */
-    }
+    TEST_ASSERT_EQUAL(OPENPGP_SUCCESS, result.error);
+    TEST_ASSERT_NULL(result.error_message);
+    /* TODO: Verify the key pair data */
     
     openpgp_result_free(&result);
     openpgp_cleanup();
@@ -53,12 +48,8 @@ TEST_CASE(generate_key_with_options) {
     openpgp_result_t result = openpgp_generate_key_with_options(&options);
     
     /* Now that FlatBuffers work, this should succeed */
-    if (result.error == OPENPGP_SUCCESS) {
-        printf("      Key generation with options succeeded!\n");
-        TEST_ASSERT_NULL(result.error_message);
-    } else {
-        printf("      Key generation with options failed: %s\n", result.error_message);
-    }
+    TEST_ASSERT_EQUAL(OPENPGP_SUCCESS, result.error);
+    TEST_ASSERT_NULL(result.error_message);
     
     openpgp_result_free(&result);
     openpgp_cleanup();

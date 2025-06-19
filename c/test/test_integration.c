@@ -8,17 +8,11 @@ TEST_CASE(bridge_integration) {
     result = openpgp_init();
     
     if (result.error == OPENPGP_SUCCESS) {
-        printf("      Bridge library loaded successfully\n");
-        
         /* Test that we can call functions without crash */
         openpgp_result_t gen_result = openpgp_generate_key("Test", "test@example.com", NULL);
         /* Now that FlatBuffers work, this should succeed */
-        if (gen_result.error == OPENPGP_SUCCESS) {
-            printf("      Key generation succeeded!\n");
-            TEST_ASSERT_NULL(gen_result.error_message);
-        } else {
-            printf("      Key generation failed: %s\n", gen_result.error_message);
-        }
+        TEST_ASSERT_EQUAL(OPENPGP_SUCCESS, gen_result.error);
+        TEST_ASSERT_NULL(gen_result.error_message);
         openpgp_result_free(&gen_result);
         
         openpgp_cleanup();

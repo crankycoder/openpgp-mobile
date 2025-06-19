@@ -24,14 +24,8 @@ TEST_CASE(flatbuffer_serialization_simple) {
     void *buffer = flatcc_builder_get_direct_buffer(B, &size);
     TEST_ASSERT_NOT_NULL(buffer);
     
-    /* Print the buffer for inspection */
-    printf("\n      Buffer size: %zu bytes\n", size);
-    printf("      Hex dump: ");
-    unsigned char *bytes = (unsigned char *)buffer;
-    for (size_t i = 0; i < size && i < 32; i++) {
-        printf("%02x ", bytes[i]);
-    }
-    printf("\n");
+    /* Verify minimum size */
+    TEST_ASSERT(size >= 8);
     
     /* Expected minimal FlatBuffer structure:
      * Offset 0-3: UOffset to root table (4 bytes, little-endian)
@@ -153,14 +147,8 @@ TEST_CASE(flatbuffer_serialization_full_request) {
     void *buffer = flatcc_builder_get_direct_buffer(B, &size);
     TEST_ASSERT_NOT_NULL(buffer);
     
-    printf("\n      Full request buffer size: %zu bytes\n", size);
-    printf("      First 64 bytes:\n      ");
-    unsigned char *bytes = (unsigned char *)buffer;
-    for (size_t i = 0; i < size && i < 64; i++) {
-        printf("%02x ", bytes[i]);
-        if ((i + 1) % 16 == 0) printf("\n      ");
-    }
-    printf("\n");
+    /* Verify buffer was created */
+    TEST_ASSERT(size > 100);  /* Full request should be reasonably sized */
     
     /* Verify we can parse it completely */
     model_GenerateRequest_table_t parsed = model_GenerateRequest_as_root(buffer);

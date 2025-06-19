@@ -57,7 +57,6 @@ TEST_CASE(build_request_with_empty_options) {
     
     size_t size = flatcc_builder_get_buffer_size(B);
     TEST_ASSERT(size > 12); /* Should be larger than empty */
-    printf("      Size with empty Options: %zu bytes\n", size);
     
     void *buffer = flatcc_builder_get_direct_buffer(B, &size);
     TEST_ASSERT_NOT_NULL(buffer);
@@ -104,7 +103,7 @@ TEST_CASE(build_request_with_one_string) {
     TEST_ASSERT(flatcc_builder_end_buffer(B, req) != 0);
     
     size_t size = flatcc_builder_get_buffer_size(B);
-    printf("      Size with one string: %zu bytes\n", size);
+    TEST_ASSERT(size > 28); /* Should be larger than empty Options */
     
     void *buffer = flatcc_builder_get_direct_buffer(B, &size);
     
