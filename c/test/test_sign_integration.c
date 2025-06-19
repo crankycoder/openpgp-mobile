@@ -118,8 +118,16 @@ TEST_CASE(sign_data_with_generated_key) {
     }
     openpgp_result_free(&init_result);
     
-    // Generate simple key
-    openpgp_result_t gen_result = openpgp_generate_key("Test User", "test@example.com", NULL);
+    // Generate key using the same method as the working test
+    openpgp_options_t options;
+    openpgp_options_init_default(&options);
+    options.name = "Test User";
+    options.email = "test@example.com";
+    options.passphrase = NULL; // No passphrase for simplicity
+    options.key_options.algorithm = OPENPGP_ALGORITHM_RSA;
+    options.key_options.rsa_bits = 2048;
+    
+    openpgp_result_t gen_result = openpgp_generate_key_with_options(&options);
     
     if (gen_result.error != OPENPGP_SUCCESS) {
         printf("  ✗ Key generation failed: %s\n", 
@@ -129,36 +137,8 @@ TEST_CASE(sign_data_with_generated_key) {
         return -1;
     }
     
-    printf("  DEBUG: gen_result.data = %p\n", gen_result.data);
-    fflush(stdout);
-    printf("  ✓ Keypair");
-    fflush(stdout);
-    if (!gen_result.data) {
-        printf("  ✗ gen_result.data is NULL!\n");
-        openpgp_result_free(&gen_result);
-        openpgp_cleanup();
-        return -1;
-    }
-    
-    printf("  DEBUG: gen_result.data points to valid memory, attempting cast...\n");
-    fflush(stdout);
-    
-    // Add memory validation before casting
-    printf("  DEBUG: Checking memory at gen_result.data = %p\n", gen_result.data);
-    fflush(stdout);
-    
-    // Try to access the first byte to see if memory is readable
-    volatile unsigned char* test_ptr = (volatile unsigned char*)gen_result.data;
-    printf("  DEBUG: First byte at address: 0x%02x\n", *test_ptr);
-    fflush(stdout);
-    
     openpgp_keypair_t* keypair = (openpgp_keypair_t*)gen_result.data;
-    printf(" generated successfully\n");
-    printf("  DEBUG: Cast successful, checking keypair structure...\n");
-    fflush(stdout);
-    
-    printf("  DEBUG: keypair pointer = %p\n", (void*)keypair);
-    fflush(stdout);
+    printf("  ✓ Keypair generated successfully\n");
     
     // Safety checks
     if (!keypair) {
@@ -167,44 +147,12 @@ TEST_CASE(sign_data_with_generated_key) {
         openpgp_cleanup();
         return -1;
     }
-    
-    printf("  DEBUG: keypair is not NULL, checking private_key field...\n");
-    fflush(stdout);
-    
-    // Try to access the private_key field carefully
-    printf("  DEBUG: About to read keypair->private_key address...\n");
-    fflush(stdout);
-    
-    char* private_key_ptr = keypair->private_key;
-    printf("  DEBUG: keypair->private_key = %p\n", (void*)private_key_ptr);
-    fflush(stdout);
-    
-    if (!private_key_ptr) {
+    if (!keypair->private_key) {
         printf("  ✗ Private key is NULL\n");
         openpgp_result_free(&gen_result);
         openpgp_cleanup();
         return -1;
     }
-    
-    printf("  DEBUG: private_key is not NULL, checking if readable...\n");
-    fflush(stdout);
-    
-    // Try to read the first character of the private key string
-    printf("  DEBUG: Attempting to read first char of private key...\n");
-    fflush(stdout);
-    
-    char first_char = private_key_ptr[0];
-    printf("  DEBUG: First character of private key: '%c' (0x%02x)\n", 
-           (first_char >= 32 && first_char <= 126) ? first_char : '?', 
-           (unsigned char)first_char);
-    fflush(stdout);
-    
-    printf("  DEBUG: About to call strlen on private key...\n");
-    fflush(stdout);
-    
-    size_t key_len = strlen(private_key_ptr);
-    printf("  DEBUG: Private key length: %zu characters\n", key_len);
-    fflush(stdout);
     
     // Test sign_data function
     printf("  Testing sign_data function...\n");
