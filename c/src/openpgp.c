@@ -2546,18 +2546,20 @@ openpgp_result_t openpgp_verify_data(const void *data,
         return create_error_result(OPENPGP_ERROR_LIBRARY_NOT_INITIALIZED, "Library not initialized");
     }
 
-    /* Create FlatBuffer request */
-    flatbuffers_builder_t *B = flatbuffers_builder_create(1024 + data_len);
-    if (!B) {
-        return create_error_result(OPENPGP_ERROR_MEMORY_ALLOCATION, "Failed to create FlatBuffer builder");
+    /* Create FlatBuffer builder */
+    flatcc_builder_t builder;
+    flatcc_builder_t *B = &builder;
+    
+    if (flatcc_builder_init(B)) {
+        return create_error_result(OPENPGP_ERROR_MEMORY_ALLOCATION, "Failed to initialize FlatBuffer builder");
     }
 
     /* Create string and data references */
-    flatcc_string_ref_t signature_ref = flatbuffers_string_create(B, signature, strlen(signature));
-    flatcc_string_ref_t public_key_ref = flatbuffers_string_create(B, public_key, strlen(public_key));
+    flatbuffers_string_ref_t signature_ref = flatbuffers_string_create_str(B, signature);
+    flatbuffers_string_ref_t public_key_ref = flatbuffers_string_create_str(B, public_key);
     
     /* Create bytes vector for the data */
-    uint8_t *message_vector = flatbuffers_uint8_vec_create(B, (const uint8_t*)data, data_len);
+    flatbuffers_uint8_vec_ref_t message_vector = flatbuffers_uint8_vec_create(B, (const uint8_t*)data, data_len);
 
     /* Build VerifyBytesRequest */
     model_VerifyBytesRequest_start(B);
@@ -2566,16 +2568,16 @@ openpgp_result_t openpgp_verify_data(const void *data,
     model_VerifyBytesRequest_public_key_add(B, public_key_ref);
     model_VerifyBytesRequest_ref_t request = model_VerifyBytesRequest_end(B);
 
-    /* Finalize the buffer */
-    flatbuffers_buffer_ref_t buffer_ref = flatbuffers_buffer_create(B, request);
+    /* Finalize buffer */
+    flatbuffers_buffer_start(B, request);
     size_t size;
-    void *buffer = flatbuffers_builder_finalize_buffer(B, buffer_ref, &size);
+    void *buffer = flatcc_builder_get_direct_buffer(B, &size);
 
     /* Call the bridge */
     BytesReturn *response = g_openpgp.bridge_call("verifyBytes", buffer, (int)size);
     
     /* Clean up builder */
-    flatbuffers_builder_destroy(B);
+    flatcc_builder_clear(B);
 
     if (!response) {
         return create_error_result(OPENPGP_ERROR_BRIDGE_CALL, "Bridge call failed");
