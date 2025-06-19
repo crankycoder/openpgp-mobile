@@ -2448,8 +2448,81 @@ openpgp_result_t openpgp_verify(const char *signed_message,
         return create_error_result(OPENPGP_ERROR_LIBRARY_NOT_INITIALIZED, "Library not initialized");
     }
 
-    // Stub implementation for TDD - will be replaced with actual FlatBuffer implementation
-    return create_error_result(OPENPGP_ERROR_VERIFICATION_FAILED, "Verification not yet implemented");
+    /* Create FlatBuffer request */
+    flatbuffers_builder_t *B = flatbuffers_builder_create(1024);
+    if (!B) {
+        return create_error_result(OPENPGP_ERROR_MEMORY_ALLOCATION, "Failed to create FlatBuffer builder");
+    }
+
+    /* Create string references */
+    flatcc_string_ref_t signature_ref = flatbuffers_string_create(B, signed_message, strlen(signed_message));
+    flatcc_string_ref_t message_ref = flatbuffers_string_create(B, "", 0); // Empty for signed message
+    flatcc_string_ref_t public_key_ref = flatbuffers_string_create(B, public_key, strlen(public_key));
+
+    /* Build VerifyRequest */
+    model_VerifyRequest_start(B);
+    model_VerifyRequest_signature_add(B, signature_ref);
+    model_VerifyRequest_message_add(B, message_ref);
+    model_VerifyRequest_public_key_add(B, public_key_ref);
+    model_VerifyRequest_ref_t request = model_VerifyRequest_end(B);
+
+    /* Finalize the buffer */
+    flatbuffers_buffer_ref_t buffer_ref = flatbuffers_buffer_create(B, request);
+    size_t size;
+    void *buffer = flatbuffers_builder_finalize_buffer(B, buffer_ref, &size);
+
+    /* Call the bridge */
+    BytesReturn *response = g_openpgp.bridge_call("verify", buffer, (int)size);
+    
+    /* Clean up builder */
+    flatbuffers_builder_destroy(B);
+
+    if (!response) {
+        return create_error_result(OPENPGP_ERROR_BRIDGE_CALL, "Bridge call failed");
+    }
+
+    if (response->error) {
+        char *error_copy = duplicate_string(response->error);
+        if (response->message) free(response->message);
+        free(response->error);
+        free(response);
+        return create_error_result(OPENPGP_ERROR_VERIFICATION_FAILED, error_copy);
+    }
+
+    /* Parse BoolResponse */
+    model_BoolResponse_table_t bool_response = model_BoolResponse_as_root(response->message);
+    if (!bool_response) {
+        if (response->message) free(response->message);
+        free(response);
+        return create_error_result(OPENPGP_ERROR_SERIALIZATION, "Invalid verification response");
+    }
+
+    /* Create verification result */
+    openpgp_verification_result_t *verify_result = create_verification_result();
+    if (!verify_result) {
+        if (response->message) free(response->message);
+        free(response);
+        return create_error_result(OPENPGP_ERROR_MEMORY_ALLOCATION, "Failed to allocate verification result");
+    }
+
+    /* Extract verification status */
+    verify_result->is_valid = model_BoolResponse_output(bool_response);
+    
+    /* For signed messages, we should extract the original data */
+    /* This is a simplified implementation - may need enhancement */
+    if (verify_result->is_valid) {
+        verify_result->signer_key_id = duplicate_string("unknown"); // TODO: Extract from signature
+        verify_result->signer_fingerprint = duplicate_string("unknown"); // TODO: Extract from signature
+        // TODO: Parse the signed message to extract original content
+        verify_result->original_data = duplicate_string("extracted content not yet implemented");
+    }
+
+    /* Clean up response */
+    if (response->message) free(response->message);
+    free(response);
+
+    *result = verify_result;
+    return create_success_result(NULL, 0);
 }
 
 openpgp_result_t openpgp_verify_data(const void *data,
