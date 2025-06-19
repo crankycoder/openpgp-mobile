@@ -581,7 +581,7 @@ C Application -> C Wrapper (openpgp.h) -> FlatBuffers -> OpenPGPBridgeCall -> Go
 1. Bug in our FlatBuffer/C wrapper implementation, or  
 2. Non-conformant key format in Go test suite
 
-**Impact**: Core asymmetric functionality proven working. See `.claude/workspace/key-import-failure-analysis.md` for detailed analysis.
+**Impact**: Core asymmetric functionality proven working. See `docs/key-import-failure-analysis.md` for detailed analysis.
 
 ## Phase 5: Key Generation Integration Testing ⏳ IN PROGRESS (Current Phase)
 
