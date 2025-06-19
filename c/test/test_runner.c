@@ -51,6 +51,7 @@ extern int test_decrypt_wrong_private_key(void);
 
 /* Signing operation test declarations */
 extern void run_signing_tests(void);
+extern void run_sign_integration_tests(void);
 
 /* Key Generation Integration test declarations */
 extern int test_rsa_2048_generation_and_usage(void);
@@ -158,6 +159,9 @@ int main(void) {
     
     /* Run signing operation tests */
     run_signing_tests();
+    
+    /* Run signing integration tests */
+    run_sign_integration_tests();
 
     /* Print summary */
     printf("\n======================================\n");
