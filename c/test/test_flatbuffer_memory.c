@@ -7,6 +7,9 @@
 #include <stdlib.h>
 #include <string.h>
 
+// Include the actual FlatBuffer headers
+#include "../generated/flatcc/flatcc_builder.h"
+
 // Global variables for test framework
 int g_tests_run = 0;
 int g_tests_failed = 0;
@@ -69,6 +72,28 @@ int g_major_tests_failed = 0;
         } \
     } while (0)
 
+#define TEST_ASSERT_EQUAL_MESSAGE(expected, actual, msg) \
+    do { \
+        g_tests_run++; \
+        if ((expected) != (actual)) { \
+            g_tests_failed++; \
+            printf(COLOR_RED "FAIL" COLOR_RESET " %s:%d: %s (expected %d, got %d)\n", \
+                   __FILE__, __LINE__, msg, (int)(expected), (int)(actual)); \
+            return 1; \
+        } \
+    } while (0)
+
+#define TEST_ASSERT_NOT_EQUAL_MESSAGE(expected, actual, msg) \
+    do { \
+        g_tests_run++; \
+        if ((expected) == (actual)) { \
+            g_tests_failed++; \
+            printf(COLOR_RED "FAIL" COLOR_RESET " %s:%d: %s (both values are %d)\n", \
+                   __FILE__, __LINE__, msg, (int)(expected)); \
+            return 1; \
+        } \
+    } while (0)
+
 // Test setup and teardown helpers
 static void test_setup(void) {
     memory_tracking_init();
@@ -123,12 +148,16 @@ TEST_CASE(builder_create_destroy_no_leak) {
     test_setup();
     
     // EXPECT: This should fail initially due to memory leaks
-    // Create builder
-    flatbuffers_builder_t *builder = flatbuffers_builder_create(1024);
-    TEST_ASSERT_NOT_NULL_MESSAGE(builder, "Failed to create FlatBuffer builder");
+    // Create builder using the actual flatcc API
+    flatcc_builder_t builder;
+    flatcc_builder_t *B = &builder;
     
-    // Destroy builder immediately
-    flatbuffers_builder_destroy(builder);
+    memset(B, 0, sizeof(flatcc_builder_t));
+    int init_result = flatcc_builder_init(B);
+    TEST_ASSERT_EQUAL_MESSAGE(0, init_result, "Failed to initialize FlatBuffer builder");
+    
+    // Clear builder immediately
+    flatcc_builder_clear(B);
     
     // Memory tracking should show no leaks
     TEST_ASSERT_FALSE_MESSAGE(memory_tracking_has_leaks(), 
@@ -141,18 +170,26 @@ TEST_CASE(builder_with_buffer_no_leak) {
     test_setup();
     
     // EXPECT: This should fail initially due to memory leaks
-    // Create builder
-    flatbuffers_builder_t *builder = flatbuffers_builder_create(1024);
-    TEST_ASSERT_NOT_NULL_MESSAGE(builder, "Failed to create FlatBuffer builder");
+    // Create builder using the actual flatcc API
+    flatcc_builder_t builder;
+    flatcc_builder_t *B = &builder;
     
-    // Get buffer (but don't use it)
+    memset(B, 0, sizeof(flatcc_builder_t));
+    int init_result = flatcc_builder_init(B);
+    TEST_ASSERT_EQUAL_MESSAGE(0, init_result, "Failed to initialize FlatBuffer builder");
+    
+    // Start a buffer
+    int start_result = flatcc_builder_start_buffer(B, 0, 0, 0);
+    TEST_ASSERT_EQUAL_MESSAGE(0, start_result, "Failed to start FlatBuffer");
+    
+    // Get buffer 
     size_t size;
-    uint8_t *buffer = flatbuffers_builder_get_direct_buffer(builder, &size);
+    void *buffer = flatcc_builder_get_direct_buffer(B, &size);
     TEST_ASSERT_NOT_NULL_MESSAGE(buffer, "Failed to get buffer from builder");
     TEST_ASSERT_GREATER_THAN_MESSAGE(0, size, "Buffer size should be greater than 0");
     
-    // Destroy builder
-    flatbuffers_builder_destroy(builder);
+    // Clear builder
+    flatcc_builder_clear(B);
     
     // Memory tracking should show no leaks
     TEST_ASSERT_FALSE_MESSAGE(memory_tracking_has_leaks(), 
@@ -165,26 +202,39 @@ TEST_CASE(multiple_builders_no_interference) {
     test_setup();
     
     // EXPECT: This should fail initially due to memory leaks or interference
-    // Create multiple builders
-    flatbuffers_builder_t *builder1 = flatbuffers_builder_create(512);
-    flatbuffers_builder_t *builder2 = flatbuffers_builder_create(1024);
+    // Create multiple builders using the actual flatcc API
+    flatcc_builder_t builder1, builder2;
+    flatcc_builder_t *B1 = &builder1;
+    flatcc_builder_t *B2 = &builder2;
     
-    TEST_ASSERT_NOT_NULL(builder1);
-    TEST_ASSERT_NOT_NULL(builder2);
-    TEST_ASSERT_NOT_EQUAL(builder1, builder2);
+    memset(B1, 0, sizeof(flatcc_builder_t));
+    memset(B2, 0, sizeof(flatcc_builder_t));
+    
+    int init_result1 = flatcc_builder_init(B1);
+    int init_result2 = flatcc_builder_init(B2);
+    
+    TEST_ASSERT_EQUAL_MESSAGE(0, init_result1, "Failed to initialize first FlatBuffer builder");
+    TEST_ASSERT_EQUAL_MESSAGE(0, init_result2, "Failed to initialize second FlatBuffer builder");
+    TEST_ASSERT_NOT_EQUAL(B1, B2);
     
     // Use both builders
+    int start_result1 = flatcc_builder_start_buffer(B1, 0, 0, 0);
+    int start_result2 = flatcc_builder_start_buffer(B2, 0, 0, 0);
+    
+    TEST_ASSERT_EQUAL_MESSAGE(0, start_result1, "Failed to start first buffer");
+    TEST_ASSERT_EQUAL_MESSAGE(0, start_result2, "Failed to start second buffer");
+    
     size_t size1, size2;
-    uint8_t *buffer1 = flatbuffers_builder_get_direct_buffer(builder1, &size1);
-    uint8_t *buffer2 = flatbuffers_builder_get_direct_buffer(builder2, &size2);
+    void *buffer1 = flatcc_builder_get_direct_buffer(B1, &size1);
+    void *buffer2 = flatcc_builder_get_direct_buffer(B2, &size2);
     
     TEST_ASSERT_NOT_NULL(buffer1);
     TEST_ASSERT_NOT_NULL(buffer2);
     TEST_ASSERT_NOT_EQUAL(buffer1, buffer2);
     
-    // Destroy builders
-    flatbuffers_builder_destroy(builder1);
-    flatbuffers_builder_destroy(builder2);
+    // Clear builders
+    flatcc_builder_clear(B1);
+    flatcc_builder_clear(B2);
     
     // Memory tracking should show no leaks
     TEST_ASSERT_FALSE_MESSAGE(memory_tracking_has_leaks(), 
@@ -205,19 +255,27 @@ TEST_CASE(serialize_generate_minimal_request) {
     options.comment = "";
     options.passphrase = "";
     
-    openpgp_key_options_t key_options = {0};
-    key_options.algorithm = OPENPGP_ALGORITHM_RSA;
-    key_options.rsa_bits = 2048;
+    // Test that we can create a minimal request without crashing
+    // This mimics the actual serialize_generate_request function pattern
+    flatcc_builder_t builder;
+    flatcc_builder_t *B = &builder;
     
-    // This function doesn't exist yet - we need to create it
-    // For now, just test that we can create a minimal request without crashing
-    flatbuffers_builder_t *builder = flatbuffers_builder_create(1024);
-    TEST_ASSERT_NOT_NULL(builder);
+    memset(B, 0, sizeof(flatcc_builder_t));
+    int init_result = flatcc_builder_init(B);
+    TEST_ASSERT_EQUAL_MESSAGE(0, init_result, "Failed to initialize FlatBuffer builder");
     
-    // Try to build minimal request
-    // TODO: Implement serialize_generate_request function
+    int start_result = flatcc_builder_start_buffer(B, 0, 0, 0);
+    TEST_ASSERT_EQUAL_MESSAGE(0, start_result, "Failed to start FlatBuffer");
     
-    flatbuffers_builder_destroy(builder);
+    // Try to create minimal strings (this is where buffer overruns might occur)
+    flatbuffers_string_ref_t name_ref = flatbuffers_string_create_str(B, options.name ? options.name : "");
+    flatbuffers_string_ref_t email_ref = flatbuffers_string_create_str(B, options.email ? options.email : "");
+    
+    TEST_ASSERT_NOT_EQUAL_MESSAGE(0, name_ref, "Failed to create name string reference");
+    TEST_ASSERT_NOT_EQUAL_MESSAGE(0, email_ref, "Failed to create email string reference");
+    
+    // Clear builder 
+    flatcc_builder_clear(B);
     
     TEST_ASSERT_FALSE_MESSAGE(memory_tracking_has_leaks(), 
                              "Minimal generate request serialization leaked memory");
@@ -254,17 +312,30 @@ TEST_CASE(serialize_generate_max_size_request) {
     options.comment = large_comment;
     options.passphrase = large_passphrase;
     
-    openpgp_key_options_t key_options = {0};
-    key_options.algorithm = OPENPGP_ALGORITHM_RSA;
-    key_options.rsa_bits = 4096;  // Larger key size
-    
     // Test that we can handle large inputs without buffer overruns
-    flatbuffers_builder_t *builder = flatbuffers_builder_create(4096);  // Larger buffer
-    TEST_ASSERT_NOT_NULL(builder);
+    flatcc_builder_t builder;
+    flatcc_builder_t *B = &builder;
     
-    // TODO: Implement serialize_generate_request function
+    memset(B, 0, sizeof(flatcc_builder_t));
+    int init_result = flatcc_builder_init(B);
+    TEST_ASSERT_EQUAL_MESSAGE(0, init_result, "Failed to initialize FlatBuffer builder");
     
-    flatbuffers_builder_destroy(builder);
+    int start_result = flatcc_builder_start_buffer(B, 0, 0, 0);
+    TEST_ASSERT_EQUAL_MESSAGE(0, start_result, "Failed to start FlatBuffer");
+    
+    // Try to create large strings (this is where buffer overruns might occur)
+    flatbuffers_string_ref_t name_ref = flatbuffers_string_create_str(B, options.name);
+    flatbuffers_string_ref_t email_ref = flatbuffers_string_create_str(B, options.email);
+    flatbuffers_string_ref_t comment_ref = flatbuffers_string_create_str(B, options.comment);
+    flatbuffers_string_ref_t passphrase_ref = flatbuffers_string_create_str(B, options.passphrase);
+    
+    TEST_ASSERT_NOT_EQUAL_MESSAGE(0, name_ref, "Failed to create large name string reference");
+    TEST_ASSERT_NOT_EQUAL_MESSAGE(0, email_ref, "Failed to create large email string reference");
+    TEST_ASSERT_NOT_EQUAL_MESSAGE(0, comment_ref, "Failed to create large comment string reference");
+    TEST_ASSERT_NOT_EQUAL_MESSAGE(0, passphrase_ref, "Failed to create large passphrase string reference");
+    
+    // Clear builder
+    flatcc_builder_clear(B);
     
     TEST_ASSERT_FALSE_MESSAGE(memory_tracking_has_leaks(), 
                              "Large generate request serialization leaked memory");
