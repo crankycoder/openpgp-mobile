@@ -2570,17 +2570,21 @@ openpgp_result_t openpgp_verify_data(const void *data,
     model_VerifyBytesRequest_signature_add(B, signature_ref);
     model_VerifyBytesRequest_message_add(B, message_vector);
     model_VerifyBytesRequest_public_key_add(B, public_key_ref);
-    model_VerifyBytesRequest_ref_t request = model_VerifyBytesRequest_end(B);
+    model_VerifyBytesRequest_end_as_root(B);
 
-    /* Finalize buffer */
-    flatbuffers_buffer_start(B, request);
+    /* Get the buffer */
     size_t size;
-    void *buffer = flatcc_builder_get_direct_buffer(B, &size);
+    void *buffer = flatcc_builder_finalize_aligned_buffer(B, &size);
+    if (!buffer) {
+        flatcc_builder_clear(B);
+        return create_error_result(OPENPGP_ERROR_SERIALIZATION, "Failed to serialize VerifyBytesRequest");
+    }
 
     /* Call the bridge */
     BytesReturn *response = g_openpgp.bridge_call("verifyBytes", buffer, (int)size);
     
-    /* Clean up builder */
+    /* Free the builder and buffer */
+    flatcc_builder_aligned_free(buffer);
     flatcc_builder_clear(B);
 
     if (!response) {
@@ -2665,17 +2669,21 @@ openpgp_result_t openpgp_verify_file(const char *file_path,
     model_VerifyFileRequest_signature_add(B, signature_ref);
     model_VerifyFileRequest_input_add(B, input_ref);
     model_VerifyFileRequest_public_key_add(B, public_key_ref);
-    model_VerifyFileRequest_ref_t request = model_VerifyFileRequest_end(B);
+    model_VerifyFileRequest_end_as_root(B);
 
-    /* Finalize buffer */
-    flatbuffers_buffer_start(B, request);
+    /* Get the buffer */
     size_t size;
-    void *buffer = flatcc_builder_get_direct_buffer(B, &size);
+    void *buffer = flatcc_builder_finalize_aligned_buffer(B, &size);
+    if (!buffer) {
+        flatcc_builder_clear(B);
+        return create_error_result(OPENPGP_ERROR_SERIALIZATION, "Failed to serialize VerifyFileRequest");
+    }
 
     /* Call the bridge */
     BytesReturn *response = g_openpgp.bridge_call("verifyFile", buffer, (int)size);
     
-    /* Clean up builder */
+    /* Free the builder and buffer */
+    flatcc_builder_aligned_free(buffer);
     flatcc_builder_clear(B);
 
     if (!response) {
