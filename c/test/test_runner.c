@@ -38,6 +38,17 @@ extern int test_symmetric_uninitialized_library(void);
 extern void run_convert_tests(void);
 extern void run_metadata_tests(void);
 
+/* Asymmetric encryption test declarations */
+extern int test_encrypt_message_single_recipient(void);
+extern int test_encrypt_message_multiple_recipients(void);
+extern int test_decrypt_message(void);
+extern int test_encrypt_decrypt_round_trip(void);
+extern int test_encrypt_invalid_public_key(void);
+extern int test_encrypt_null_message(void);
+extern int test_encrypt_null_recipients(void);
+extern int test_encrypt_zero_recipients(void);
+extern int test_decrypt_wrong_private_key(void);
+
 int main(void) {
     printf(COLOR_BLUE "OpenPGP C Wrapper Library Tests" COLOR_RESET "\n");
     printf("======================================\n\n");
@@ -105,6 +116,20 @@ int main(void) {
     /* Run key operation tests */
     run_convert_tests();
     run_metadata_tests();
+
+    printf("\n" COLOR_BLUE "Asymmetric Encryption Tests" COLOR_RESET "\n");
+    printf("----------------------------\n");
+    
+    /* Run asymmetric encryption tests */
+    RUN_TEST(encrypt_message_single_recipient);
+    RUN_TEST(encrypt_message_multiple_recipients);
+    RUN_TEST(decrypt_message);
+    RUN_TEST(encrypt_decrypt_round_trip);
+    RUN_TEST(encrypt_invalid_public_key);
+    RUN_TEST(encrypt_null_message);
+    RUN_TEST(encrypt_null_recipients);
+    RUN_TEST(encrypt_zero_recipients);
+    RUN_TEST(decrypt_wrong_private_key);
 
     /* Print summary */
     printf("\n======================================\n");

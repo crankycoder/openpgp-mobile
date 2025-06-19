@@ -1509,3 +1509,146 @@ openpgp_result_t openpgp_decrypt_symmetric_bytes(const uint8_t *data, size_t dat
     
     return create_success_result(decrypted_copy, decrypted_len);
 }
+
+/*
+ * Asymmetric Encryption Operations
+ */
+
+openpgp_result_t openpgp_encrypt(const char *message, 
+                                const char **recipient_keys,
+                                size_t recipient_count,
+                                const openpgp_key_options_t *options) {
+    /* Input validation */
+    if (!message) {
+        return create_error_result(OPENPGP_ERROR_INVALID_INPUT, "Message cannot be null");
+    }
+    if (!recipient_keys) {
+        return create_error_result(OPENPGP_ERROR_INVALID_INPUT, "Recipient keys cannot be null");
+    }
+    if (recipient_count == 0) {
+        return create_error_result(OPENPGP_ERROR_INVALID_INPUT, "Must have at least one recipient");
+    }
+    if (!g_openpgp.initialized) {
+        return create_error_result(OPENPGP_ERROR_LIBRARY_NOT_INITIALIZED,
+                                 "Library not initialized");
+    }
+
+    /* TODO: Implement FlatBuffer serialization for asymmetric encryption */
+    return create_error_result(OPENPGP_ERROR_BRIDGE_CALL, 
+                             "Asymmetric encryption not yet implemented");
+}
+
+openpgp_result_t openpgp_decrypt(const char *message,
+                                const char *private_key,
+                                const char *passphrase,
+                                const openpgp_key_options_t *options) {
+    /* Input validation */
+    if (!message) {
+        return create_error_result(OPENPGP_ERROR_INVALID_INPUT, "Message cannot be null");
+    }
+    if (!private_key) {
+        return create_error_result(OPENPGP_ERROR_INVALID_INPUT, "Private key cannot be null");
+    }
+    if (!g_openpgp.initialized) {
+        return create_error_result(OPENPGP_ERROR_LIBRARY_NOT_INITIALIZED,
+                                 "Library not initialized");
+    }
+
+    /* TODO: Implement FlatBuffer serialization for asymmetric decryption */
+    return create_error_result(OPENPGP_ERROR_BRIDGE_CALL, 
+                             "Asymmetric decryption not yet implemented");
+}
+
+openpgp_result_t openpgp_encrypt_file(const char *input_file,
+                                     const char *output_file,
+                                     const char **recipient_keys,
+                                     size_t recipient_count,
+                                     const openpgp_file_hints_t *file_hints,
+                                     const openpgp_key_options_t *options) {
+    /* Input validation */
+    if (!input_file || !output_file) {
+        return create_error_result(OPENPGP_ERROR_INVALID_INPUT, 
+                                 "Input and output file paths cannot be null");
+    }
+    if (!recipient_keys || recipient_count == 0) {
+        return create_error_result(OPENPGP_ERROR_INVALID_INPUT, 
+                                 "Must have at least one recipient key");
+    }
+    if (!g_openpgp.initialized) {
+        return create_error_result(OPENPGP_ERROR_LIBRARY_NOT_INITIALIZED,
+                                 "Library not initialized");
+    }
+
+    /* TODO: Implement file-based asymmetric encryption */
+    return create_error_result(OPENPGP_ERROR_BRIDGE_CALL, 
+                             "Asymmetric file encryption not yet implemented");
+}
+
+openpgp_result_t openpgp_decrypt_file(const char *input_file,
+                                     const char *output_file,
+                                     const char *private_key,
+                                     const char *passphrase,
+                                     const openpgp_key_options_t *options) {
+    /* Input validation */
+    if (!input_file || !output_file) {
+        return create_error_result(OPENPGP_ERROR_INVALID_INPUT, 
+                                 "Input and output file paths cannot be null");
+    }
+    if (!private_key) {
+        return create_error_result(OPENPGP_ERROR_INVALID_INPUT, "Private key cannot be null");
+    }
+    if (!g_openpgp.initialized) {
+        return create_error_result(OPENPGP_ERROR_LIBRARY_NOT_INITIALIZED,
+                                 "Library not initialized");
+    }
+
+    /* TODO: Implement file-based asymmetric decryption */
+    return create_error_result(OPENPGP_ERROR_BRIDGE_CALL, 
+                             "Asymmetric file decryption not yet implemented");
+}
+
+openpgp_result_t openpgp_encrypt_bytes(const uint8_t *data, size_t data_len,
+                                      const char **recipient_keys,
+                                      size_t recipient_count,
+                                      const openpgp_file_hints_t *file_hints,
+                                      const openpgp_key_options_t *options) {
+    /* Input validation */
+    if (!data || data_len == 0) {
+        return create_error_result(OPENPGP_ERROR_INVALID_INPUT, 
+                                 "Data cannot be null and length must be > 0");
+    }
+    if (!recipient_keys || recipient_count == 0) {
+        return create_error_result(OPENPGP_ERROR_INVALID_INPUT, 
+                                 "Must have at least one recipient key");
+    }
+    if (!g_openpgp.initialized) {
+        return create_error_result(OPENPGP_ERROR_LIBRARY_NOT_INITIALIZED,
+                                 "Library not initialized");
+    }
+
+    /* TODO: Implement binary asymmetric encryption */
+    return create_error_result(OPENPGP_ERROR_BRIDGE_CALL, 
+                             "Asymmetric binary encryption not yet implemented");
+}
+
+openpgp_result_t openpgp_decrypt_bytes(const uint8_t *data, size_t data_len,
+                                      const char *private_key,
+                                      const char *passphrase,
+                                      const openpgp_key_options_t *options) {
+    /* Input validation */
+    if (!data || data_len == 0) {
+        return create_error_result(OPENPGP_ERROR_INVALID_INPUT, 
+                                 "Data cannot be null and length must be > 0");
+    }
+    if (!private_key) {
+        return create_error_result(OPENPGP_ERROR_INVALID_INPUT, "Private key cannot be null");
+    }
+    if (!g_openpgp.initialized) {
+        return create_error_result(OPENPGP_ERROR_LIBRARY_NOT_INITIALIZED,
+                                 "Library not initialized");
+    }
+
+    /* TODO: Implement binary asymmetric decryption */
+    return create_error_result(OPENPGP_ERROR_BRIDGE_CALL, 
+                             "Asymmetric binary decryption not yet implemented");
+}

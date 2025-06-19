@@ -74,6 +74,28 @@ extern int g_major_tests_failed; /* Failed major test functions */
         } \
     } while (0)
 
+#define TEST_ASSERT_TRUE(condition) \
+    do { \
+        g_tests_run++; \
+        if (!(condition)) { \
+            g_tests_failed++; \
+            printf(COLOR_RED "FAIL" COLOR_RESET " %s:%d: Expected true, got false: %s\n", \
+                   __FILE__, __LINE__, #condition); \
+            return 1; \
+        } \
+    } while (0)
+
+#define TEST_ASSERT_NOT_EQUAL(expected, actual) \
+    do { \
+        g_tests_run++; \
+        if ((expected) == (actual)) { \
+            g_tests_failed++; \
+            printf(COLOR_RED "FAIL" COLOR_RESET " %s:%d: Expected not %d, but got %d\n", \
+                   __FILE__, __LINE__, (int)(expected), (int)(actual)); \
+            return 1; \
+        } \
+    } while (0)
+
 /* Test case declaration */
 #define TEST_CASE(name) \
     int test_##name(void); \
