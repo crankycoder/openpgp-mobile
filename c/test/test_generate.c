@@ -52,10 +52,13 @@ TEST_CASE(generate_key_with_options) {
     
     openpgp_result_t result = openpgp_generate_key_with_options(&options);
     
-    /* We expect this to fail currently since we don't have proper FlatBuffers yet */
-    TEST_ASSERT(result.error != OPENPGP_SUCCESS);
-    TEST_ASSERT_NOT_NULL(result.error_message);
-    printf("      Key generation with options failed as expected: %s\n", result.error_message);
+    /* Now that FlatBuffers work, this should succeed */
+    if (result.error == OPENPGP_SUCCESS) {
+        printf("      Key generation with options succeeded!\n");
+        TEST_ASSERT_NULL(result.error_message);
+    } else {
+        printf("      Key generation with options failed: %s\n", result.error_message);
+    }
     
     openpgp_result_free(&result);
     openpgp_cleanup();

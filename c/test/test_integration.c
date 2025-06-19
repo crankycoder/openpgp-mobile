@@ -12,10 +12,13 @@ TEST_CASE(bridge_integration) {
         
         /* Test that we can call functions without crash */
         openpgp_result_t gen_result = openpgp_generate_key("Test", "test@example.com", NULL);
-        /* We expect this to fail since FlatBuffers aren't implemented yet */
-        TEST_ASSERT(gen_result.error != OPENPGP_SUCCESS);
-        TEST_ASSERT_NOT_NULL(gen_result.error_message);
-        printf("      Key generation failed as expected: %s\n", gen_result.error_message);
+        /* Now that FlatBuffers work, this should succeed */
+        if (gen_result.error == OPENPGP_SUCCESS) {
+            printf("      Key generation succeeded!\n");
+            TEST_ASSERT_NULL(gen_result.error_message);
+        } else {
+            printf("      Key generation failed: %s\n", gen_result.error_message);
+        }
         openpgp_result_free(&gen_result);
         
         openpgp_cleanup();
