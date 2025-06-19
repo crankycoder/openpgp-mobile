@@ -1,8 +1,10 @@
 #include "test_framework.h"
 
 /* Global test counters */
-int g_tests_run = 0;
-int g_tests_failed = 0;
+int g_tests_run = 0;        /* Total assertions/subtests */
+int g_tests_failed = 0;     /* Failed assertions/subtests */
+int g_major_tests_run = 0;  /* Major test functions */
+int g_major_tests_failed = 0; /* Failed major test functions */
 
 /* Test function declarations */
 extern int test_basic_initialization(void);
@@ -30,6 +32,8 @@ int main(void) {
     /* Reset counters */
     g_tests_run = 0;
     g_tests_failed = 0;
+    g_major_tests_run = 0;
+    g_major_tests_failed = 0;
 
     /* Run incremental builder tests first */
     printf("\n" COLOR_BLUE "Incremental Builder Tests" COLOR_RESET "\n");
@@ -75,14 +79,17 @@ int main(void) {
 
     /* Print summary */
     printf("\n======================================\n");
-    printf("Tests run: %d\n", g_tests_run);
-    printf("Tests failed: %d\n", g_tests_failed);
+    printf("Major tests run: %d\n", g_major_tests_run);
+    printf("Major tests failed: %d\n", g_major_tests_failed);
+    printf("Total subtests run: %d\n", g_tests_run);
+    printf("Total subtests failed: %d\n", g_tests_failed);
     
     if (g_tests_failed == 0) {
         printf(COLOR_GREEN "All tests passed!" COLOR_RESET "\n");
         return 0;
     } else {
-        printf(COLOR_RED "%d tests failed!" COLOR_RESET "\n", g_tests_failed);
+        printf(COLOR_RED "%d major tests failed, %d subtests failed!" COLOR_RESET "\n", 
+               g_major_tests_failed, g_tests_failed);
         return 1;
     }
 }

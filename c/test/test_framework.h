@@ -6,8 +6,10 @@
 #include <string.h>
 
 /* Test result tracking */
-extern int g_tests_run;
-extern int g_tests_failed;
+extern int g_tests_run;        /* Total assertions/subtests */
+extern int g_tests_failed;     /* Failed assertions/subtests */
+extern int g_major_tests_run;  /* Major test functions */
+extern int g_major_tests_failed; /* Failed major test functions */
 
 /* Colors for output */
 #define COLOR_RED     "\x1b[31m"
@@ -80,11 +82,16 @@ extern int g_tests_failed;
 /* Test runner macros */
 #define RUN_TEST(name) \
     do { \
+        int start_subtests = g_tests_run; \
+        g_major_tests_run++; \
         printf("Running test_" #name "... "); \
         if (test_##name() == 0) { \
-            printf(COLOR_GREEN "PASS" COLOR_RESET "\n"); \
+            int subtests_count = g_tests_run - start_subtests; \
+            printf(COLOR_GREEN "PASS" COLOR_RESET " (%d subtests)\n", subtests_count); \
         } else { \
-            printf(COLOR_RED "FAIL" COLOR_RESET "\n"); \
+            int subtests_count = g_tests_run - start_subtests; \
+            g_major_tests_failed++; \
+            printf(COLOR_RED "FAIL" COLOR_RESET " (%d subtests)\n", subtests_count); \
         } \
     } while (0)
 
