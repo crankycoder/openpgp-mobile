@@ -87,6 +87,20 @@ test-minimal: $(BUILDDIR)/test_sign_verify_minimal
 # Run both debug tests
 test-all-debug: test-debug test-minimal
 
+# Memory test executable
+$(BUILDDIR)/test_flatbuffer_memory: $(TESTDIR)/test_flatbuffer_memory.c $(TESTDIR)/memory_helpers.c $(STATIC_LIB) $(LIBDIR)/libflatccrt.a
+	$(CC) $(CFLAGS) $(INCLUDES) -DDEBUG_MEMORY=1 -o $@ $^ -ldl
+
+# Run memory tests
+test-memory: $(BUILDDIR)/test_flatbuffer_memory
+	@echo "Running FlatBuffer memory tests..."
+	cd .. && LD_LIBRARY_PATH=output/binding:$$LD_LIBRARY_PATH ./c/$(BUILDDIR)/test_flatbuffer_memory
+
+# Run memory tests with valgrind
+test-memory-valgrind: $(BUILDDIR)/test_flatbuffer_memory
+	@echo "Running FlatBuffer memory tests with valgrind..."
+	cd $(TESTDIR) && ./valgrind_test.sh
+
 # Clean build artifacts
 clean:
 	rm -rf $(BUILDDIR) $(LIBDIR)
@@ -103,4 +117,4 @@ install: all
 generate:
 	$(MAKE) -C .. flatbuffers_c_wrapper
 
-.PHONY: all directories test clean distclean install generate
+.PHONY: all directories test clean distclean install generate test-memory test-memory-valgrind test-debug test-minimal test-all-debug
