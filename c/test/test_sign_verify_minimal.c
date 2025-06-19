@@ -66,7 +66,7 @@ TEST_CASE(minimal_sign_test) {
     
     // Test signing with minimal message
     printf("  Attempting to sign 'test' message...\n");
-    openpgp_result_t sign_result = openpgp_sign("test", private_key, NULL);
+    openpgp_result_t sign_result = openpgp_sign("test", private_key, NULL, NULL);
     
     printf("  Sign result: error=%d\n", sign_result.error);
     
@@ -154,15 +154,14 @@ TEST_CASE(minimal_generated_key_test) {
     openpgp_options_t opts = {
         .email = "debug@test.com",
         .name = "Debug Test",
-        .passphrase = NULL
+        .passphrase = NULL,
+        .key_options = {
+            .algorithm = OPENPGP_ALGORITHM_RSA,
+            .rsa_bits = 2048
+        }
     };
     
-    openpgp_key_options_t key_opts = {
-        .algorithm = OPENPGP_ALGORITHM_RSA,
-        .rsa_bits = 2048
-    };
-    
-    openpgp_result_t gen_result = openpgp_generate_key_with_options(&opts, &key_opts);
+    openpgp_result_t gen_result = openpgp_generate_key_with_options(&opts);
     printf("  Key generation result: error=%d\n", gen_result.error);
     
     if (gen_result.error != OPENPGP_SUCCESS) {
@@ -172,16 +171,19 @@ TEST_CASE(minimal_generated_key_test) {
     }
     
     printf("  Key generated successfully\n");
-    printf("  Private key length: %zu\n", strlen(gen_result.keypair->private_key));
+    
+    // Cast the data to keypair
+    openpgp_keypair_t* keypair = (openpgp_keypair_t*)gen_result.data;
+    printf("  Private key length: %zu\n", strlen(keypair->private_key));
     
     // This is where the segfault typically occurs
     printf("  Attempting to sign with generated key...\n");
-    openpgp_result_t sign_result = openpgp_sign("test", gen_result.keypair->private_key, NULL);
+    openpgp_result_t sign_result = openpgp_sign("test", keypair->private_key, NULL, NULL);
     
     printf("  Sign result: error=%d\n", sign_result.error);
     
     // Cleanup
-    openpgp_free_keypair(gen_result.keypair);
+    openpgp_result_free(&gen_result);
     if (sign_result.data) {
         free(sign_result.data);
     }
