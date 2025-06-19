@@ -25,6 +25,15 @@ extern int test_build_empty_generate_request(void);
 extern int test_build_request_with_empty_options(void);
 extern int test_build_request_with_one_string(void);
 
+/* Symmetric encryption test declarations */
+extern int test_symmetric_encrypt_decrypt_message(void);
+extern int test_symmetric_encrypt_decrypt_with_file_hints(void);
+extern int test_symmetric_encrypt_decrypt_with_options(void);
+extern int test_symmetric_encrypt_decrypt_bytes(void);
+extern int test_symmetric_encrypt_decrypt_file(void);
+extern int test_symmetric_error_handling(void);
+extern int test_symmetric_uninitialized_library(void);
+
 /* Key operation test declarations */
 extern void run_convert_tests(void);
 extern void run_metadata_tests(void);
@@ -80,6 +89,18 @@ int main(void) {
     /* Run FlatBuffer tests */
     RUN_TEST(create_generate_request);
     RUN_TEST(parse_keypair_response);
+
+    printf("\n" COLOR_BLUE "Symmetric Encryption Tests" COLOR_RESET "\n");
+    printf("--------------------------\n");
+    
+    /* Run symmetric encryption tests */
+    RUN_TEST(symmetric_uninitialized_library);
+    RUN_TEST(symmetric_error_handling);
+    RUN_TEST(symmetric_encrypt_decrypt_message);
+    RUN_TEST(symmetric_encrypt_decrypt_with_file_hints);
+    RUN_TEST(symmetric_encrypt_decrypt_with_options);
+    RUN_TEST(symmetric_encrypt_decrypt_bytes);
+    RUN_TEST(symmetric_encrypt_decrypt_file);
 
     /* Run key operation tests */
     run_convert_tests();

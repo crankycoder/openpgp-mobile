@@ -783,3 +783,729 @@ void openpgp_private_key_metadata_free(openpgp_private_key_metadata_t *metadata)
     memset(metadata, 0, sizeof(*metadata));
     free(metadata);
 }
+
+/*
+ * Symmetric Encryption Operations
+ */
+
+/* Helper function to build KeyOptions FlatBuffer */
+static model_KeyOptions_ref_t build_key_options(flatcc_builder_t *B, const openpgp_key_options_t *options) {
+    if (!options) {
+        return 0; /* Return null reference for optional field */
+    }
+    
+    model_KeyOptions_start(B);
+    model_KeyOptions_algorithm_add(B, (model_Algorithm_enum_t)options->algorithm);
+    model_KeyOptions_curve_add(B, (model_Curve_enum_t)options->curve);
+    model_KeyOptions_hash_add(B, (model_Hash_enum_t)options->hash);
+    model_KeyOptions_cipher_add(B, (model_Cipher_enum_t)options->cipher);
+    model_KeyOptions_compression_add(B, (model_Compression_enum_t)options->compression);
+    model_KeyOptions_compression_level_add(B, options->compression_level);
+    model_KeyOptions_rsa_bits_add(B, options->rsa_bits);
+    return model_KeyOptions_end(B);
+}
+
+/* Helper function to build FileHints FlatBuffer */
+static model_FileHints_ref_t build_file_hints(flatcc_builder_t *B, const openpgp_file_hints_t *hints) {
+    if (!hints) {
+        return 0; /* Return null reference for optional field */
+    }
+    
+    model_FileHints_start(B);
+    model_FileHints_is_binary_add(B, hints->is_binary);
+    
+    if (hints->file_name) {
+        flatbuffers_string_ref_t file_name_ref = flatbuffers_string_create_str(B, hints->file_name);
+        model_FileHints_file_name_add(B, file_name_ref);
+    }
+    
+    if (hints->mod_time) {
+        flatbuffers_string_ref_t mod_time_ref = flatbuffers_string_create_str(B, hints->mod_time);
+        model_FileHints_mod_time_add(B, mod_time_ref);
+    }
+    
+    return model_FileHints_end(B);
+}
+
+openpgp_result_t openpgp_encrypt_symmetric(const char *message, const char *passphrase, 
+                                          const openpgp_file_hints_t *file_hints,
+                                          const openpgp_key_options_t *options) {
+    if (!g_openpgp.initialized) {
+        return create_error_result(OPENPGP_ERROR_LIBRARY_NOT_INITIALIZED,
+                                 "Library not initialized");
+    }
+    
+    if (!message || strlen(message) == 0) {
+        return create_error_result(OPENPGP_ERROR_INVALID_INPUT,
+                                 "Message is required");
+    }
+    
+    if (!passphrase || strlen(passphrase) == 0) {
+        return create_error_result(OPENPGP_ERROR_INVALID_INPUT,
+                                 "Passphrase is required");
+    }
+    
+    /* Build EncryptSymmetricRequest */
+    flatcc_builder_t builder;
+    flatcc_builder_init(&builder);
+    
+    /* Create the request manually */
+    model_EncryptSymmetricRequest_start_as_root(&builder);
+    
+    /* Add message field */
+    flatbuffers_string_ref_t message_ref = flatbuffers_string_create_str(&builder, message);
+    model_EncryptSymmetricRequest_message_add(&builder, message_ref);
+    
+    /* Add passphrase field */
+    flatbuffers_string_ref_t passphrase_ref = flatbuffers_string_create_str(&builder, passphrase);
+    model_EncryptSymmetricRequest_passphrase_add(&builder, passphrase_ref);
+    
+    /* Add options field if provided */
+    model_KeyOptions_ref_t options_ref = build_key_options(&builder, options);
+    if (options_ref) {
+        model_EncryptSymmetricRequest_options_add(&builder, options_ref);
+    }
+    
+    /* Add file_hints field if provided */
+    model_FileHints_ref_t file_hints_ref = build_file_hints(&builder, file_hints);
+    if (file_hints_ref) {
+        model_EncryptSymmetricRequest_file_hints_add(&builder, file_hints_ref);
+    }
+    
+    /* End the request */
+    model_EncryptSymmetricRequest_end_as_root(&builder);
+    
+    /* Get buffer */
+    size_t size;
+    void *buffer = flatcc_builder_finalize_aligned_buffer(&builder, &size);
+    if (!buffer) {
+        flatcc_builder_clear(&builder);
+        return create_error_result(OPENPGP_ERROR_SERIALIZATION, 
+                                 "Failed to serialize EncryptSymmetricRequest");
+    }
+    
+    /* Call bridge */
+    BytesReturn* response = g_openpgp.bridge_call("encryptSymmetric", buffer, size);
+    
+    /* Free the builder and buffer */
+    flatcc_builder_aligned_free(buffer);
+    flatcc_builder_clear(&builder);
+    
+    /* Handle response */
+    if (!response) {
+        return create_error_result(OPENPGP_ERROR_BRIDGE_CALL, "Bridge call failed");
+    }
+    
+    /* Parse StringResponse */
+    model_StringResponse_table_t string_response = model_StringResponse_as_root(response->message);
+    if (!string_response) {
+        /* Free response if needed */
+        if (response->error) free(response->error);
+        if (response->message) free(response->message);
+        free(response);
+        return create_error_result(OPENPGP_ERROR_SERIALIZATION, "Failed to parse StringResponse");
+    }
+    
+    /* Check for error in response */
+    flatbuffers_string_t error = model_StringResponse_error(string_response);
+    if (error && strlen(error) > 0) {
+        char *error_copy = duplicate_string(error);
+        /* Free response */
+        if (response->error) free(response->error);
+        if (response->message) free(response->message);
+        free(response);
+        return create_error_result(OPENPGP_ERROR_ENCRYPTION_FAILED, error_copy);
+    }
+    
+    /* Get the encrypted message */
+    flatbuffers_string_t encrypted_str = model_StringResponse_output(string_response);
+    if (!encrypted_str) {
+        /* Free response */
+        if (response->error) free(response->error);
+        if (response->message) free(response->message);
+        free(response);
+        return create_error_result(OPENPGP_ERROR_SERIALIZATION, "No encrypted message in response");
+    }
+    
+    /* Duplicate the encrypted message string */
+    char *encrypted_copy = duplicate_string(encrypted_str);
+    if (!encrypted_copy) {
+        /* Free response */
+        if (response->error) free(response->error);
+        if (response->message) free(response->message);
+        free(response);
+        return create_error_result(OPENPGP_ERROR_MEMORY_ALLOCATION, "Failed to copy encrypted message");
+    }
+    
+    /* Free response */
+    if (response->error) free(response->error);
+    if (response->message) free(response->message);
+    free(response);
+    
+    return create_success_result(encrypted_copy, strlen(encrypted_copy) + 1);
+}
+
+openpgp_result_t openpgp_decrypt_symmetric(const char *message, const char *passphrase,
+                                          const openpgp_key_options_t *options) {
+    if (!g_openpgp.initialized) {
+        return create_error_result(OPENPGP_ERROR_LIBRARY_NOT_INITIALIZED,
+                                 "Library not initialized");
+    }
+    
+    if (!message || strlen(message) == 0) {
+        return create_error_result(OPENPGP_ERROR_INVALID_INPUT,
+                                 "Message is required");
+    }
+    
+    if (!passphrase || strlen(passphrase) == 0) {
+        return create_error_result(OPENPGP_ERROR_INVALID_INPUT,
+                                 "Passphrase is required");
+    }
+    
+    /* Build DecryptSymmetricRequest */
+    flatcc_builder_t builder;
+    flatcc_builder_init(&builder);
+    
+    /* Create the request manually */
+    model_DecryptSymmetricRequest_start_as_root(&builder);
+    
+    /* Add message field */
+    flatbuffers_string_ref_t message_ref = flatbuffers_string_create_str(&builder, message);
+    model_DecryptSymmetricRequest_message_add(&builder, message_ref);
+    
+    /* Add passphrase field */
+    flatbuffers_string_ref_t passphrase_ref = flatbuffers_string_create_str(&builder, passphrase);
+    model_DecryptSymmetricRequest_passphrase_add(&builder, passphrase_ref);
+    
+    /* Add options field if provided */
+    model_KeyOptions_ref_t options_ref = build_key_options(&builder, options);
+    if (options_ref) {
+        model_DecryptSymmetricRequest_options_add(&builder, options_ref);
+    }
+    
+    /* End the request */
+    model_DecryptSymmetricRequest_end_as_root(&builder);
+    
+    /* Get buffer */
+    size_t size;
+    void *buffer = flatcc_builder_finalize_aligned_buffer(&builder, &size);
+    if (!buffer) {
+        flatcc_builder_clear(&builder);
+        return create_error_result(OPENPGP_ERROR_SERIALIZATION, 
+                                 "Failed to serialize DecryptSymmetricRequest");
+    }
+    
+    /* Call bridge */
+    BytesReturn* response = g_openpgp.bridge_call("decryptSymmetric", buffer, size);
+    
+    /* Free the builder and buffer */
+    flatcc_builder_aligned_free(buffer);
+    flatcc_builder_clear(&builder);
+    
+    /* Handle response */
+    if (!response) {
+        return create_error_result(OPENPGP_ERROR_BRIDGE_CALL, "Bridge call failed");
+    }
+    
+    /* Parse StringResponse */
+    model_StringResponse_table_t string_response = model_StringResponse_as_root(response->message);
+    if (!string_response) {
+        /* Free response if needed */
+        if (response->error) free(response->error);
+        if (response->message) free(response->message);
+        free(response);
+        return create_error_result(OPENPGP_ERROR_SERIALIZATION, "Failed to parse StringResponse");
+    }
+    
+    /* Check for error in response */
+    flatbuffers_string_t error = model_StringResponse_error(string_response);
+    if (error && strlen(error) > 0) {
+        char *error_copy = duplicate_string(error);
+        /* Free response */
+        if (response->error) free(response->error);
+        if (response->message) free(response->message);
+        free(response);
+        return create_error_result(OPENPGP_ERROR_DECRYPTION_FAILED, error_copy);
+    }
+    
+    /* Get the decrypted message */
+    flatbuffers_string_t decrypted_str = model_StringResponse_output(string_response);
+    if (!decrypted_str) {
+        /* Free response */
+        if (response->error) free(response->error);
+        if (response->message) free(response->message);
+        free(response);
+        return create_error_result(OPENPGP_ERROR_SERIALIZATION, "No decrypted message in response");
+    }
+    
+    /* Duplicate the decrypted message string */
+    char *decrypted_copy = duplicate_string(decrypted_str);
+    if (!decrypted_copy) {
+        /* Free response */
+        if (response->error) free(response->error);
+        if (response->message) free(response->message);
+        free(response);
+        return create_error_result(OPENPGP_ERROR_MEMORY_ALLOCATION, "Failed to copy decrypted message");
+    }
+    
+    /* Free response */
+    if (response->error) free(response->error);
+    if (response->message) free(response->message);
+    free(response);
+    
+    return create_success_result(decrypted_copy, strlen(decrypted_copy) + 1);
+}
+
+openpgp_result_t openpgp_encrypt_symmetric_file(const char *input_file, const char *output_file,
+                                               const char *passphrase,
+                                               const openpgp_file_hints_t *file_hints,
+                                               const openpgp_key_options_t *options) {
+    if (!g_openpgp.initialized) {
+        return create_error_result(OPENPGP_ERROR_LIBRARY_NOT_INITIALIZED,
+                                 "Library not initialized");
+    }
+    
+    if (!input_file || strlen(input_file) == 0) {
+        return create_error_result(OPENPGP_ERROR_INVALID_INPUT,
+                                 "Input file path is required");
+    }
+    
+    if (!output_file || strlen(output_file) == 0) {
+        return create_error_result(OPENPGP_ERROR_INVALID_INPUT,
+                                 "Output file path is required");
+    }
+    
+    if (!passphrase || strlen(passphrase) == 0) {
+        return create_error_result(OPENPGP_ERROR_INVALID_INPUT,
+                                 "Passphrase is required");
+    }
+    
+    /* Build EncryptSymmetricFileRequest */
+    flatcc_builder_t builder;
+    flatcc_builder_init(&builder);
+    
+    /* Create the request manually */
+    model_EncryptSymmetricFileRequest_start_as_root(&builder);
+    
+    /* Add input field */
+    flatbuffers_string_ref_t input_ref = flatbuffers_string_create_str(&builder, input_file);
+    model_EncryptSymmetricFileRequest_input_add(&builder, input_ref);
+    
+    /* Add output field */
+    flatbuffers_string_ref_t output_ref = flatbuffers_string_create_str(&builder, output_file);
+    model_EncryptSymmetricFileRequest_output_add(&builder, output_ref);
+    
+    /* Add passphrase field */
+    flatbuffers_string_ref_t passphrase_ref = flatbuffers_string_create_str(&builder, passphrase);
+    model_EncryptSymmetricFileRequest_passphrase_add(&builder, passphrase_ref);
+    
+    /* Add options field if provided */
+    model_KeyOptions_ref_t options_ref = build_key_options(&builder, options);
+    if (options_ref) {
+        model_EncryptSymmetricFileRequest_options_add(&builder, options_ref);
+    }
+    
+    /* Add file_hints field if provided */
+    model_FileHints_ref_t file_hints_ref = build_file_hints(&builder, file_hints);
+    if (file_hints_ref) {
+        model_EncryptSymmetricFileRequest_file_hints_add(&builder, file_hints_ref);
+    }
+    
+    /* End the request */
+    model_EncryptSymmetricFileRequest_end_as_root(&builder);
+    
+    /* Get buffer */
+    size_t size;
+    void *buffer = flatcc_builder_finalize_aligned_buffer(&builder, &size);
+    if (!buffer) {
+        flatcc_builder_clear(&builder);
+        return create_error_result(OPENPGP_ERROR_SERIALIZATION, 
+                                 "Failed to serialize EncryptSymmetricFileRequest");
+    }
+    
+    /* Call bridge */
+    BytesReturn* response = g_openpgp.bridge_call("encryptSymmetricFile", buffer, size);
+    
+    /* Free the builder and buffer */
+    flatcc_builder_aligned_free(buffer);
+    flatcc_builder_clear(&builder);
+    
+    /* Handle response */
+    if (!response) {
+        return create_error_result(OPENPGP_ERROR_BRIDGE_CALL, "Bridge call failed");
+    }
+    
+    /* Parse StringResponse */
+    model_StringResponse_table_t string_response = model_StringResponse_as_root(response->message);
+    if (!string_response) {
+        /* Free response if needed */
+        if (response->error) free(response->error);
+        if (response->message) free(response->message);
+        free(response);
+        return create_error_result(OPENPGP_ERROR_SERIALIZATION, "Failed to parse StringResponse");
+    }
+    
+    /* Check for error in response */
+    flatbuffers_string_t error = model_StringResponse_error(string_response);
+    if (error && strlen(error) > 0) {
+        char *error_copy = duplicate_string(error);
+        /* Free response */
+        if (response->error) free(response->error);
+        if (response->message) free(response->message);
+        free(response);
+        return create_error_result(OPENPGP_ERROR_ENCRYPTION_FAILED, error_copy);
+    }
+    
+    /* Free response */
+    if (response->error) free(response->error);
+    if (response->message) free(response->message);
+    free(response);
+    
+    return create_success_result(NULL, 0);
+}
+
+openpgp_result_t openpgp_decrypt_symmetric_file(const char *input_file, const char *output_file,
+                                               const char *passphrase,
+                                               const openpgp_key_options_t *options) {
+    if (!g_openpgp.initialized) {
+        return create_error_result(OPENPGP_ERROR_LIBRARY_NOT_INITIALIZED,
+                                 "Library not initialized");
+    }
+    
+    if (!input_file || strlen(input_file) == 0) {
+        return create_error_result(OPENPGP_ERROR_INVALID_INPUT,
+                                 "Input file path is required");
+    }
+    
+    if (!output_file || strlen(output_file) == 0) {
+        return create_error_result(OPENPGP_ERROR_INVALID_INPUT,
+                                 "Output file path is required");
+    }
+    
+    if (!passphrase || strlen(passphrase) == 0) {
+        return create_error_result(OPENPGP_ERROR_INVALID_INPUT,
+                                 "Passphrase is required");
+    }
+    
+    /* Build DecryptSymmetricFileRequest */
+    flatcc_builder_t builder;
+    flatcc_builder_init(&builder);
+    
+    /* Create the request manually */
+    model_DecryptSymmetricFileRequest_start_as_root(&builder);
+    
+    /* Add input field */
+    flatbuffers_string_ref_t input_ref = flatbuffers_string_create_str(&builder, input_file);
+    model_DecryptSymmetricFileRequest_input_add(&builder, input_ref);
+    
+    /* Add output field */
+    flatbuffers_string_ref_t output_ref = flatbuffers_string_create_str(&builder, output_file);
+    model_DecryptSymmetricFileRequest_output_add(&builder, output_ref);
+    
+    /* Add passphrase field */
+    flatbuffers_string_ref_t passphrase_ref = flatbuffers_string_create_str(&builder, passphrase);
+    model_DecryptSymmetricFileRequest_passphrase_add(&builder, passphrase_ref);
+    
+    /* Add options field if provided */
+    model_KeyOptions_ref_t options_ref = build_key_options(&builder, options);
+    if (options_ref) {
+        model_DecryptSymmetricFileRequest_options_add(&builder, options_ref);
+    }
+    
+    /* End the request */
+    model_DecryptSymmetricFileRequest_end_as_root(&builder);
+    
+    /* Get buffer */
+    size_t size;
+    void *buffer = flatcc_builder_finalize_aligned_buffer(&builder, &size);
+    if (!buffer) {
+        flatcc_builder_clear(&builder);
+        return create_error_result(OPENPGP_ERROR_SERIALIZATION, 
+                                 "Failed to serialize DecryptSymmetricFileRequest");
+    }
+    
+    /* Call bridge */
+    BytesReturn* response = g_openpgp.bridge_call("decryptSymmetricFile", buffer, size);
+    
+    /* Free the builder and buffer */
+    flatcc_builder_aligned_free(buffer);
+    flatcc_builder_clear(&builder);
+    
+    /* Handle response */
+    if (!response) {
+        return create_error_result(OPENPGP_ERROR_BRIDGE_CALL, "Bridge call failed");
+    }
+    
+    /* Parse StringResponse */
+    model_StringResponse_table_t string_response = model_StringResponse_as_root(response->message);
+    if (!string_response) {
+        /* Free response if needed */
+        if (response->error) free(response->error);
+        if (response->message) free(response->message);
+        free(response);
+        return create_error_result(OPENPGP_ERROR_SERIALIZATION, "Failed to parse StringResponse");
+    }
+    
+    /* Check for error in response */
+    flatbuffers_string_t error = model_StringResponse_error(string_response);
+    if (error && strlen(error) > 0) {
+        char *error_copy = duplicate_string(error);
+        /* Free response */
+        if (response->error) free(response->error);
+        if (response->message) free(response->message);
+        free(response);
+        return create_error_result(OPENPGP_ERROR_DECRYPTION_FAILED, error_copy);
+    }
+    
+    /* Free response */
+    if (response->error) free(response->error);
+    if (response->message) free(response->message);
+    free(response);
+    
+    return create_success_result(NULL, 0);
+}
+
+openpgp_result_t openpgp_encrypt_symmetric_bytes(const uint8_t *data, size_t data_len,
+                                                const char *passphrase,
+                                                const openpgp_file_hints_t *file_hints,
+                                                const openpgp_key_options_t *options) {
+    if (!g_openpgp.initialized) {
+        return create_error_result(OPENPGP_ERROR_LIBRARY_NOT_INITIALIZED,
+                                 "Library not initialized");
+    }
+    
+    if (!data || data_len == 0) {
+        return create_error_result(OPENPGP_ERROR_INVALID_INPUT,
+                                 "Data is required");
+    }
+    
+    if (!passphrase || strlen(passphrase) == 0) {
+        return create_error_result(OPENPGP_ERROR_INVALID_INPUT,
+                                 "Passphrase is required");
+    }
+    
+    /* Build EncryptSymmetricBytesRequest */
+    flatcc_builder_t builder;
+    flatcc_builder_init(&builder);
+    
+    /* Create the request manually */
+    model_EncryptSymmetricBytesRequest_start_as_root(&builder);
+    
+    /* Add message field as byte vector */
+    flatbuffers_uint8_vec_ref_t message_ref = flatbuffers_uint8_vec_create(&builder, data, data_len);
+    model_EncryptSymmetricBytesRequest_message_add(&builder, message_ref);
+    
+    /* Add passphrase field */
+    flatbuffers_string_ref_t passphrase_ref = flatbuffers_string_create_str(&builder, passphrase);
+    model_EncryptSymmetricBytesRequest_passphrase_add(&builder, passphrase_ref);
+    
+    /* Add options field if provided */
+    model_KeyOptions_ref_t options_ref = build_key_options(&builder, options);
+    if (options_ref) {
+        model_EncryptSymmetricBytesRequest_options_add(&builder, options_ref);
+    }
+    
+    /* Add file_hints field if provided */
+    model_FileHints_ref_t file_hints_ref = build_file_hints(&builder, file_hints);
+    if (file_hints_ref) {
+        model_EncryptSymmetricBytesRequest_file_hints_add(&builder, file_hints_ref);
+    }
+    
+    /* End the request */
+    model_EncryptSymmetricBytesRequest_end_as_root(&builder);
+    
+    /* Get buffer */
+    size_t size;
+    void *buffer = flatcc_builder_finalize_aligned_buffer(&builder, &size);
+    if (!buffer) {
+        flatcc_builder_clear(&builder);
+        return create_error_result(OPENPGP_ERROR_SERIALIZATION, 
+                                 "Failed to serialize EncryptSymmetricBytesRequest");
+    }
+    
+    /* Call bridge */
+    BytesReturn* response = g_openpgp.bridge_call("encryptSymmetricBytes", buffer, size);
+    
+    /* Free the builder and buffer */
+    flatcc_builder_aligned_free(buffer);
+    flatcc_builder_clear(&builder);
+    
+    /* Handle response */
+    if (!response) {
+        return create_error_result(OPENPGP_ERROR_BRIDGE_CALL, "Bridge call failed");
+    }
+    
+    /* Parse BytesResponse */
+    model_BytesResponse_table_t bytes_response = model_BytesResponse_as_root(response->message);
+    if (!bytes_response) {
+        /* Free response if needed */
+        if (response->error) free(response->error);
+        if (response->message) free(response->message);
+        free(response);
+        return create_error_result(OPENPGP_ERROR_SERIALIZATION, "Failed to parse BytesResponse");
+    }
+    
+    /* Check for error in response */
+    flatbuffers_string_t error = model_BytesResponse_error(bytes_response);
+    if (error && strlen(error) > 0) {
+        char *error_copy = duplicate_string(error);
+        /* Free response */
+        if (response->error) free(response->error);
+        if (response->message) free(response->message);
+        free(response);
+        return create_error_result(OPENPGP_ERROR_ENCRYPTION_FAILED, error_copy);
+    }
+    
+    /* Get the encrypted bytes */
+    flatbuffers_uint8_vec_t encrypted_vec = model_BytesResponse_output(bytes_response);
+    if (!encrypted_vec) {
+        /* Free response */
+        if (response->error) free(response->error);
+        if (response->message) free(response->message);
+        free(response);
+        return create_error_result(OPENPGP_ERROR_SERIALIZATION, "No encrypted data in response");
+    }
+    
+    size_t encrypted_len = flatbuffers_uint8_vec_len(encrypted_vec);
+    
+    /* Duplicate the encrypted data */
+    uint8_t *encrypted_copy = malloc(encrypted_len);
+    if (!encrypted_copy) {
+        /* Free response */
+        if (response->error) free(response->error);
+        if (response->message) free(response->message);
+        free(response);
+        return create_error_result(OPENPGP_ERROR_MEMORY_ALLOCATION, "Failed to copy encrypted data");
+    }
+    
+    /* Copy data element by element */
+    for (size_t i = 0; i < encrypted_len; i++) {
+        encrypted_copy[i] = flatbuffers_uint8_vec_at(encrypted_vec, i);
+    }
+    
+    /* Free response */
+    if (response->error) free(response->error);
+    if (response->message) free(response->message);
+    free(response);
+    
+    return create_success_result(encrypted_copy, encrypted_len);
+}
+
+openpgp_result_t openpgp_decrypt_symmetric_bytes(const uint8_t *data, size_t data_len,
+                                                const char *passphrase,
+                                                const openpgp_key_options_t *options) {
+    if (!g_openpgp.initialized) {
+        return create_error_result(OPENPGP_ERROR_LIBRARY_NOT_INITIALIZED,
+                                 "Library not initialized");
+    }
+    
+    if (!data || data_len == 0) {
+        return create_error_result(OPENPGP_ERROR_INVALID_INPUT,
+                                 "Data is required");
+    }
+    
+    if (!passphrase || strlen(passphrase) == 0) {
+        return create_error_result(OPENPGP_ERROR_INVALID_INPUT,
+                                 "Passphrase is required");
+    }
+    
+    /* Build DecryptSymmetricBytesRequest */
+    flatcc_builder_t builder;
+    flatcc_builder_init(&builder);
+    
+    /* Create the request manually */
+    model_DecryptSymmetricBytesRequest_start_as_root(&builder);
+    
+    /* Add message field as byte vector */
+    flatbuffers_uint8_vec_ref_t message_ref = flatbuffers_uint8_vec_create(&builder, data, data_len);
+    model_DecryptSymmetricBytesRequest_message_add(&builder, message_ref);
+    
+    /* Add passphrase field */
+    flatbuffers_string_ref_t passphrase_ref = flatbuffers_string_create_str(&builder, passphrase);
+    model_DecryptSymmetricBytesRequest_passphrase_add(&builder, passphrase_ref);
+    
+    /* Add options field if provided */
+    model_KeyOptions_ref_t options_ref = build_key_options(&builder, options);
+    if (options_ref) {
+        model_DecryptSymmetricBytesRequest_options_add(&builder, options_ref);
+    }
+    
+    /* End the request */
+    model_DecryptSymmetricBytesRequest_end_as_root(&builder);
+    
+    /* Get buffer */
+    size_t size;
+    void *buffer = flatcc_builder_finalize_aligned_buffer(&builder, &size);
+    if (!buffer) {
+        flatcc_builder_clear(&builder);
+        return create_error_result(OPENPGP_ERROR_SERIALIZATION, 
+                                 "Failed to serialize DecryptSymmetricBytesRequest");
+    }
+    
+    /* Call bridge */
+    BytesReturn* response = g_openpgp.bridge_call("decryptSymmetricBytes", buffer, size);
+    
+    /* Free the builder and buffer */
+    flatcc_builder_aligned_free(buffer);
+    flatcc_builder_clear(&builder);
+    
+    /* Handle response */
+    if (!response) {
+        return create_error_result(OPENPGP_ERROR_BRIDGE_CALL, "Bridge call failed");
+    }
+    
+    /* Parse BytesResponse */
+    model_BytesResponse_table_t bytes_response = model_BytesResponse_as_root(response->message);
+    if (!bytes_response) {
+        /* Free response if needed */
+        if (response->error) free(response->error);
+        if (response->message) free(response->message);
+        free(response);
+        return create_error_result(OPENPGP_ERROR_SERIALIZATION, "Failed to parse BytesResponse");
+    }
+    
+    /* Check for error in response */
+    flatbuffers_string_t error = model_BytesResponse_error(bytes_response);
+    if (error && strlen(error) > 0) {
+        char *error_copy = duplicate_string(error);
+        /* Free response */
+        if (response->error) free(response->error);
+        if (response->message) free(response->message);
+        free(response);
+        return create_error_result(OPENPGP_ERROR_DECRYPTION_FAILED, error_copy);
+    }
+    
+    /* Get the decrypted bytes */
+    flatbuffers_uint8_vec_t decrypted_vec = model_BytesResponse_output(bytes_response);
+    if (!decrypted_vec) {
+        /* Free response */
+        if (response->error) free(response->error);
+        if (response->message) free(response->message);
+        free(response);
+        return create_error_result(OPENPGP_ERROR_SERIALIZATION, "No decrypted data in response");
+    }
+    
+    size_t decrypted_len = flatbuffers_uint8_vec_len(decrypted_vec);
+    
+    /* Duplicate the decrypted data */
+    uint8_t *decrypted_copy = malloc(decrypted_len);
+    if (!decrypted_copy) {
+        /* Free response */
+        if (response->error) free(response->error);
+        if (response->message) free(response->message);
+        free(response);
+        return create_error_result(OPENPGP_ERROR_MEMORY_ALLOCATION, "Failed to copy decrypted data");
+    }
+    
+    /* Copy data element by element */
+    for (size_t i = 0; i < decrypted_len; i++) {
+        decrypted_copy[i] = flatbuffers_uint8_vec_at(decrypted_vec, i);
+    }
+    
+    /* Free response */
+    if (response->error) free(response->error);
+    if (response->message) free(response->message);
+    free(response);
+    
+    return create_success_result(decrypted_copy, decrypted_len);
+}

@@ -136,17 +136,23 @@ Common error codes:
 See the `examples/` directory for complete working examples:
 - `generate_key.c` - Key generation example
 - `key_operations.c` - Key conversion and metadata extraction
+- `symmetric_encryption.c` - Symmetric encryption operations
 
 ## Implementation Status
 
-### Completed (Phase 1 & 2)
+### Completed (Phase 1, 2 & 3)
 - ✅ Key generation (RSA, ECDSA, EdDSA)
 - ✅ Private to public key conversion
 - ✅ Public key metadata extraction
 - ✅ Private key metadata extraction
+- ✅ **Symmetric encryption/decryption (Phase 3)**
+  - ✅ Message encryption/decryption with passphrase
+  - ✅ File-to-file encryption/decryption
+  - ✅ Binary data encryption/decryption
+  - ✅ Support for custom encryption options (cipher, hash, compression)
+  - ✅ Support for file hints (filename, modification time, binary flag)
 
 ### Planned
-- ⏳ Symmetric encryption/decryption (Phase 3)
 - ⏳ Asymmetric encryption/decryption (Phase 4)
 - ⏳ Signing operations (Phase 5)
 - ⏳ Verification operations (Phase 6)
