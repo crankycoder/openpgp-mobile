@@ -51,8 +51,17 @@ static bool validate_pgp_signature(const char *signature) {
 }
 
 // Basic signing tests
-void test_sign_message_basic(void) {
+TEST_CASE(sign_message_basic) {
     printf("Running test_sign_message_basic...\n");
+    
+    // Initialize library
+    openpgp_result_t init_result = openpgp_init();
+    if (init_result.error != OPENPGP_SUCCESS) {
+        printf("Failed to initialize library: %s\n", init_result.error_message);
+        openpgp_result_free(&init_result);
+        return -1;
+    }
+    openpgp_result_free(&init_result);
     
     openpgp_result_t result = openpgp_sign(
         test_message,
@@ -73,9 +82,10 @@ void test_sign_message_basic(void) {
     }
     
     openpgp_result_free(&result);
+    return 0;
 }
 
-void test_sign_message_with_passphrase(void) {
+TEST_CASE(sign_message_with_passphrase) {
     printf("Running test_sign_message_with_passphrase...\n");
     
     openpgp_result_t result = openpgp_sign(
@@ -96,9 +106,10 @@ void test_sign_message_with_passphrase(void) {
     }
     
     openpgp_result_free(&result);
+    return 0;
 }
 
-void test_sign_data_basic(void) {
+TEST_CASE(sign_data_basic) {
     printf("Running test_sign_data_basic...\n");
     
     openpgp_result_t result = openpgp_sign_data(
@@ -119,9 +130,10 @@ void test_sign_data_basic(void) {
     }
     
     openpgp_result_free(&result);
+    return 0;
 }
 
-void test_sign_bytes_basic(void) {
+TEST_CASE(sign_bytes_basic) {
     printf("Running test_sign_bytes_basic...\n");
     
     const uint8_t *test_data = (const uint8_t*)test_message;
@@ -146,9 +158,10 @@ void test_sign_bytes_basic(void) {
     }
     
     openpgp_result_free(&result);
+    return 0;
 }
 
-void test_sign_with_invalid_key(void) {
+TEST_CASE(sign_with_invalid_key) {
     printf("Running test_sign_with_invalid_key...\n");
     
     const char *invalid_key = "Not a valid PGP key";
@@ -165,9 +178,10 @@ void test_sign_with_invalid_key(void) {
     printf("✓ Correctly rejected invalid key\n");
     
     openpgp_result_free(&result);
+    return 0;
 }
 
-void test_sign_with_wrong_passphrase(void) {
+TEST_CASE(sign_with_wrong_passphrase) {
     printf("Running test_sign_with_wrong_passphrase...\n");
     
     const char *wrong_passphrase = "wrongpassword";
@@ -186,9 +200,10 @@ void test_sign_with_wrong_passphrase(void) {
     }
     
     openpgp_result_free(&result);
+    return 0;
 }
 
-void test_sign_empty_message(void) {
+TEST_CASE(sign_empty_message) {
     printf("Running test_sign_empty_message...\n");
     
     openpgp_result_t result = openpgp_sign(
@@ -210,6 +225,7 @@ void test_sign_empty_message(void) {
     }
     
     openpgp_result_free(&result);
+    return 0;
 }
 
 // Test runner for signing operations
