@@ -82,13 +82,8 @@ TEST_CASE(flatbuffer_serialization_with_strings) {
     void *buffer = flatcc_builder_get_direct_buffer(B, &size);
     TEST_ASSERT_NOT_NULL(buffer);
     
-    printf("\n      Buffer size: %zu bytes\n", size);
-    printf("      First 32 bytes: ");
-    unsigned char *bytes = (unsigned char *)buffer;
-    for (size_t i = 0; i < size && i < 32; i++) {
-        printf("%02x ", bytes[i]);
-    }
-    printf("\n");
+    /* Verify buffer was created with reasonable size */
+    TEST_ASSERT(size > 50);
     
     /* Parse it back */
     model_GenerateRequest_table_t parsed = model_GenerateRequest_as_root(buffer);
