@@ -456,6 +456,82 @@ openpgp_result_t openpgp_decrypt_bytes(const uint8_t *data, size_t data_len,
                                       const openpgp_key_options_t *options);
 
 /*
+ * Signing Operations
+ */
+
+/**
+ * Sign a message using a private key.
+ * 
+ * @param message The message to sign
+ * @param private_key The private key for signing in ASCII armor format
+ * @param passphrase The passphrase for the private key (can be NULL if unencrypted)
+ * @param options Key options for signing (can be NULL for defaults)
+ * @return Result containing the signature string on success
+ */
+openpgp_result_t openpgp_sign(const char *message,
+                             const char *private_key,
+                             const char *passphrase,
+                             const openpgp_key_options_t *options);
+
+/**
+ * Sign a message (alternative format) using a private key.
+ * 
+ * @param message The message to sign
+ * @param private_key The private key for signing in ASCII armor format
+ * @param passphrase The passphrase for the private key (can be NULL if unencrypted)
+ * @param options Key options for signing (can be NULL for defaults)
+ * @return Result containing the signature string on success
+ */
+openpgp_result_t openpgp_sign_data(const char *message,
+                                  const char *private_key,
+                                  const char *passphrase,
+                                  const openpgp_key_options_t *options);
+
+/**
+ * Sign a file using a private key.
+ * 
+ * @param input_file Path to the input file to sign
+ * @param private_key The private key for signing in ASCII armor format
+ * @param passphrase The passphrase for the private key (can be NULL if unencrypted)
+ * @param options Key options for signing (can be NULL for defaults)
+ * @return Result containing the signature string on success
+ */
+openpgp_result_t openpgp_sign_file(const char *input_file,
+                                  const char *private_key,
+                                  const char *passphrase,
+                                  const openpgp_key_options_t *options);
+
+/**
+ * Sign binary data using a private key.
+ * 
+ * @param data The binary data to sign
+ * @param data_len Length of the binary data
+ * @param private_key The private key for signing in ASCII armor format
+ * @param passphrase The passphrase for the private key (can be NULL if unencrypted)
+ * @param options Key options for signing (can be NULL for defaults)
+ * @return Result containing the signature string on success
+ */
+openpgp_result_t openpgp_sign_bytes(const uint8_t *data, size_t data_len,
+                                   const char *private_key,
+                                   const char *passphrase,
+                                   const openpgp_key_options_t *options);
+
+/**
+ * Sign binary data (alternative format) using a private key.
+ * 
+ * @param data The binary data to sign
+ * @param data_len Length of the binary data
+ * @param private_key The private key for signing in ASCII armor format
+ * @param passphrase The passphrase for the private key (can be NULL if unencrypted)
+ * @param options Key options for signing (can be NULL for defaults)
+ * @return Result containing the signature string on success
+ */
+openpgp_result_t openpgp_sign_data_bytes(const uint8_t *data, size_t data_len,
+                                        const char *private_key,
+                                        const char *passphrase,
+                                        const openpgp_key_options_t *options);
+
+/*
  * Helper Functions
  */
 
