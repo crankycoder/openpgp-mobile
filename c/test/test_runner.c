@@ -25,6 +25,10 @@ extern int test_build_empty_generate_request(void);
 extern int test_build_request_with_empty_options(void);
 extern int test_build_request_with_one_string(void);
 
+/* Key operation test declarations */
+extern void run_convert_tests(void);
+extern void run_metadata_tests(void);
+
 int main(void) {
     printf(COLOR_BLUE "OpenPGP C Wrapper Library Tests" COLOR_RESET "\n");
     printf("======================================\n\n");
@@ -76,6 +80,10 @@ int main(void) {
     /* Run FlatBuffer tests */
     RUN_TEST(create_generate_request);
     RUN_TEST(parse_keypair_response);
+
+    /* Run key operation tests */
+    run_convert_tests();
+    run_metadata_tests();
 
     /* Print summary */
     printf("\n======================================\n");
