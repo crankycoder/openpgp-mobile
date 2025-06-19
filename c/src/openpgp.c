@@ -2448,16 +2448,18 @@ openpgp_result_t openpgp_verify(const char *signed_message,
         return create_error_result(OPENPGP_ERROR_LIBRARY_NOT_INITIALIZED, "Library not initialized");
     }
 
-    /* Create FlatBuffer request */
-    flatbuffers_builder_t *B = flatbuffers_builder_create(1024);
-    if (!B) {
-        return create_error_result(OPENPGP_ERROR_MEMORY_ALLOCATION, "Failed to create FlatBuffer builder");
+    /* Create FlatBuffer builder */
+    flatcc_builder_t builder;
+    flatcc_builder_t *B = &builder;
+    
+    if (flatcc_builder_init(B)) {
+        return create_error_result(OPENPGP_ERROR_MEMORY_ALLOCATION, "Failed to initialize FlatBuffer builder");
     }
 
     /* Create string references */
-    flatcc_string_ref_t signature_ref = flatbuffers_string_create(B, signed_message, strlen(signed_message));
-    flatcc_string_ref_t message_ref = flatbuffers_string_create(B, "", 0); // Empty for signed message
-    flatcc_string_ref_t public_key_ref = flatbuffers_string_create(B, public_key, strlen(public_key));
+    flatbuffers_string_ref_t signature_ref = flatbuffers_string_create_str(B, signed_message);
+    flatbuffers_string_ref_t message_ref = flatbuffers_string_create_str(B, ""); // Empty for signed message
+    flatbuffers_string_ref_t public_key_ref = flatbuffers_string_create_str(B, public_key);
 
     /* Build VerifyRequest */
     model_VerifyRequest_start(B);
@@ -2466,16 +2468,16 @@ openpgp_result_t openpgp_verify(const char *signed_message,
     model_VerifyRequest_public_key_add(B, public_key_ref);
     model_VerifyRequest_ref_t request = model_VerifyRequest_end(B);
 
-    /* Finalize the buffer */
-    flatbuffers_buffer_ref_t buffer_ref = flatbuffers_buffer_create(B, request);
+    /* Finalize buffer */
+    flatbuffers_buffer_start(B, request);
     size_t size;
-    void *buffer = flatbuffers_builder_finalize_buffer(B, buffer_ref, &size);
+    void *buffer = flatcc_builder_get_direct_buffer(B, &size);
 
     /* Call the bridge */
     BytesReturn *response = g_openpgp.bridge_call("verify", buffer, (int)size);
     
     /* Clean up builder */
-    flatbuffers_builder_destroy(B);
+    flatcc_builder_clear(B);
 
     if (!response) {
         return create_error_result(OPENPGP_ERROR_BRIDGE_CALL, "Bridge call failed");
