@@ -4,7 +4,7 @@
 
 **Last Updated**: 2025-06-19
 
-### Overall Progress: 7/11 Phases Complete (63%)
+### Overall Progress: 8/12 Phases Complete (67%)
 
 | Phase | Status | Description | Tests |
 |-------|--------|-------------|--------|
@@ -14,9 +14,10 @@
 | Phase 3 | ✅ COMPLETED | Symmetric Encryption | ✅ All tests pass |
 | Phase 4 | ✅ COMPLETED | Asymmetric Encryption | ✅ All tests pass |
 | Phase 5 | ✅ COMPLETED | Key Generation Integration Testing | ✅ All tests pass |
-| **Phase 6** | **✅ COMPLETED** | **Signing Operations** | **✅ All tests pass** |
-| **Phase 7** | **✅ COMPLETED** | **Verification Operations** | **✅ All tests pass** |
-| **Phase 7.5** | **✅ COMPLETED** | **Signing/Verification Integration Debugging** | **✅ Segfault resolved** |
+| Phase 6 | ✅ COMPLETED | Signing Operations | ✅ All tests pass |
+| Phase 7 | ✅ COMPLETED | Verification Operations | ✅ All tests pass |
+| Phase 7.5 | ✅ COMPLETED | Signing/Verification Integration Debugging | ✅ Segfault resolved |
+| **Phase 7.6** | **🔧 IN PROGRESS** | **FlatBuffer Memory Leak Debugging** | **⚠️ Valgrind issues** |
 | Phase 8 | 📋 PLANNED | Advanced Features | - |
 | Phase 9 | 📋 PLANNED | Documentation and Polish | - |
 
@@ -906,6 +907,273 @@ Start with the absolute minimum viable test for each operation and gradually add
 - **RESULT**: All integration tests now pass, segfault completely resolved
 - Confirmed signing operations work correctly with both fixture and generated keys
 - Enhanced test coverage with additional debug and memory management tests
+
+## Phase 7.6: FlatBuffer Memory Leak Debugging and Fixes 🔧 IN PROGRESS
+
+### Objective
+Use Test-Driven Development (TDD) to systematically identify and fix FlatBuffer memory leaks detected by valgrind. The analysis revealed buffer overruns in `serialize_generate_request()` and memory corruption in `flatcc_builder_end_buffer()` operations.
+
+### Root Cause Analysis from Valgrind
+**Known Issues**:
+1. Invalid read/write errors in FlatBuffer serialization
+2. Buffer overruns in `serialize_generate_request()`
+3. Uninitialized values in `libopenpgp_bridge.so`
+4. Memory corruption causing delayed segfaults in test suite
+5. Test interference due to corrupted memory state
+
+### TDD Testing Strategy
+Each test will be written to fail first, then implementation will be fixed to make it pass.
+
+### Tasks:
+
+#### Task 7.6.1: Create FlatBuffer Memory Test Suite
+- **Status**: 📋 PLANNED
+- **Description**: Create isolated test suite specifically for FlatBuffer memory management
+- **Files to create**:
+  - `/c/test/test_flatbuffer_memory.c` - Memory-focused tests
+  - `/c/test/valgrind_test.sh` - Automated valgrind runner
+  - `/c/test/memory_helpers.h` - Memory tracking utilities
+- **Acceptance Criteria**:
+  - Test suite can run under valgrind without false positives
+  - Each test is completely isolated (separate process if needed)
+  - Memory tracking shows allocations and deallocations
+  - Valgrind output is captured and analyzed automatically
+
+#### Task 7.6.2: Test Basic FlatBuffer Builder Lifecycle
+- **Status**: 📋 PLANNED  
+- **Description**: Test the fundamental builder create/destroy cycle
+- **TDD Tests**:
+  ```c
+  void test_builder_create_destroy_no_leak() {
+      // EXPECT: No memory leaks
+      // Create builder
+      // Destroy builder immediately
+      // Valgrind: 0 bytes lost
+  }
+  
+  void test_builder_with_buffer_no_leak() {
+      // EXPECT: No memory leaks
+      // Create builder
+      // Get buffer (don't use it)
+      // Destroy builder
+      // Valgrind: 0 bytes lost
+  }
+  ```
+- **Implementation fixes**: Fix any leaks in basic lifecycle
+- **Acceptance Criteria**:
+  - Zero memory leaks in basic operations
+  - Clear documentation of proper usage pattern
+
+#### Task 7.6.3: Test serialize_generate_request Buffer Management
+- **Status**: 📋 PLANNED
+- **Description**: Fix buffer overrun in serialize_generate_request
+- **TDD Tests**:
+  ```c
+  void test_serialize_generate_minimal_request() {
+      // EXPECT: No buffer overrun
+      // Create minimal request (empty strings)
+      // Verify buffer bounds
+      // Valgrind: No invalid reads/writes
+  }
+  
+  void test_serialize_generate_max_size_request() {
+      // EXPECT: Proper buffer sizing
+      // Create request with maximum field sizes
+      // Verify buffer is large enough
+      // Valgrind: No buffer overruns
+  }
+  ```
+- **Root cause**: Likely incorrect buffer size calculation
+- **Implementation fixes**: 
+  - Audit buffer size calculations
+  - Add bounds checking
+  - Use proper FlatBuffer size APIs
+- **Acceptance Criteria**:
+  - No buffer overruns with any input size
+  - Proper error handling for oversized inputs
+
+#### Task 7.6.4: Test FlatBuffer String Handling
+- **Status**: 📋 PLANNED
+- **Description**: Strings are common source of buffer issues
+- **TDD Tests**:
+  ```c
+  void test_empty_string_handling() {
+      // EXPECT: Proper handling of NULL and ""
+      // Test NULL vs empty string behavior
+      // Verify no overreads
+  }
+  
+  void test_long_string_handling() {
+      // EXPECT: Correct buffer allocation
+      // Test with 1KB, 10KB, 100KB strings
+      // Verify proper memory allocation
+  }
+  
+  void test_unicode_string_handling() {
+      // EXPECT: Correct UTF-8 handling
+      // Test with multi-byte characters
+      // Verify no buffer miscalculations
+  }
+  ```
+- **Implementation fixes**: Fix string serialization issues
+- **Acceptance Criteria**:
+  - All string types handled correctly
+  - No memory leaks with any string input
+
+#### Task 7.6.5: Test Nested FlatBuffer Structures
+- **Status**: 📋 PLANNED
+- **Description**: Test complex nested structures (Options, KeyOptions, etc.)
+- **TDD Tests**:
+  ```c
+  void test_nested_options_no_leak() {
+      // EXPECT: Proper cleanup of nested structures
+      // Create Options with KeyOptions
+      // Verify all memory freed
+  }
+  
+  void test_optional_fields_memory() {
+      // EXPECT: Optional fields don't leak
+      // Test with various NULL fields
+      // Verify proper handling
+  }
+  ```
+- **Implementation fixes**: Fix nested structure memory management
+- **Acceptance Criteria**:
+  - Complex structures serialize without leaks
+  - Optional fields handled correctly
+
+#### Task 7.6.6: Test FlatBuffer Response Parsing Memory
+- **Status**: 📋 PLANNED
+- **Description**: Test deserialization doesn't leak memory
+- **TDD Tests**:
+  ```c
+  void test_parse_response_no_leak() {
+      // EXPECT: Parsing doesn't leak
+      // Create mock response buffer
+      // Parse it multiple times
+      // Verify no accumulating leaks
+  }
+  
+  void test_parse_error_response_cleanup() {
+      // EXPECT: Error paths clean up properly
+      // Parse malformed response
+      // Verify error handling frees memory
+  }
+  ```
+- **Implementation fixes**: Fix response parsing leaks
+- **Acceptance Criteria**:
+  - Response parsing has zero leaks
+  - Error paths properly clean up
+
+#### Task 7.6.7: Test Cross-Test Memory Isolation
+- **Status**: 📋 PLANNED
+- **Description**: Fix test interference issues
+- **TDD Tests**:
+  ```c
+  void test_sequential_operations_isolated() {
+      // EXPECT: No state leakage between operations
+      // Run operation A
+      // Verify clean state
+      // Run operation B
+      // Verify no corruption from A
+  }
+  
+  void test_builder_reuse_safety() {
+      // EXPECT: Clear errors on reuse
+      // Test that builders can't be reused
+      // Verify clear error messages
+  }
+  ```
+- **Implementation fixes**: 
+  - Add state reset between tests
+  - Ensure proper cleanup in all paths
+- **Acceptance Criteria**:
+  - Tests don't interfere with each other
+  - Clear isolation boundaries
+
+#### Task 7.6.8: Fix flatcc_builder_end_buffer Corruption
+- **Status**: 📋 PLANNED
+- **Description**: Address specific corruption in end_buffer operations
+- **TDD Tests**:
+  ```c
+  void test_end_buffer_valid_state() {
+      // EXPECT: Valid buffer after end
+      // Build complete buffer
+      // Call end_buffer
+      // Verify buffer validity
+      // Check memory bounds
+  }
+  
+  void test_end_buffer_error_cases() {
+      // EXPECT: Graceful error handling
+      // Call end on invalid builder
+      // Call end twice
+      // Verify no corruption
+  }
+  ```
+- **Root cause investigation**:
+  - Check if builder is in valid state before end
+  - Verify proper finalization sequence
+  - Check for double-free issues
+- **Acceptance Criteria**:
+  - No corruption in end_buffer
+  - Clear error handling
+
+#### Task 7.6.9: Create Memory Regression Test Suite
+- **Status**: 📋 PLANNED
+- **Description**: Comprehensive tests to prevent regressions
+- **Tests to add**:
+  - Full operation memory tests (generate, encrypt, sign, etc.)
+  - Stress tests with repeated operations
+  - Random input fuzzing tests
+  - Valgrind automation in CI
+- **Acceptance Criteria**:
+  - All operations pass valgrind checks
+  - CI automatically runs memory tests
+  - Clear memory usage documentation
+
+### Implementation Guidelines
+
+1. **TDD Process for Each Task**:
+   - Write failing test that exposes the memory issue
+   - Run under valgrind to confirm the issue
+   - Implement minimal fix to pass the test
+   - Refactor if needed while keeping tests green
+   - Document the fix and root cause
+
+2. **Valgrind Configuration**:
+   ```bash
+   valgrind --leak-check=full \
+            --show-leak-kinds=all \
+            --track-origins=yes \
+            --error-exitcode=1 \
+            --suppressions=valgrind.supp \
+            ./test_program
+   ```
+
+3. **Memory Debugging Tools**:
+   - Use AddressSanitizer for development
+   - Use Valgrind for thorough analysis
+   - Add memory usage tracking to tests
+   - Create heap profiling helpers
+
+4. **Fix Verification**:
+   - Each fix must pass individual test
+   - Each fix must pass full test suite
+   - Each fix must pass valgrind with zero errors
+   - Document memory ownership clearly
+
+### Success Criteria
+- Zero valgrind errors in all tests
+- No memory leaks detected
+- No buffer overruns or underruns  
+- Clear memory management documentation
+- Automated memory testing in CI
+- Performance impact < 5%
+
+**Phase 7.6 Status**: 📋 PLANNED
+
+This phase will systematically eliminate all FlatBuffer-related memory issues using TDD methodology.
 
 ## Phase 8: Advanced Features
 
