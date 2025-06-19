@@ -273,24 +273,24 @@ static openpgp_result_t serialize_generate_request(const openpgp_options_t *opti
     }
     
     /* Create KeyOptions */
-    model_KeyOptions_ref_t key_options_ref = model_KeyOptions_create(B,
-        (model_Algorithm_enum_t)options->key_options.algorithm,   /* algorithm */
-        (model_Curve_enum_t)options->key_options.curve,          /* curve */
-        (model_Hash_enum_t)options->key_options.hash,            /* hash */
-        (model_Cipher_enum_t)options->key_options.cipher,        /* cipher */
-        (model_Compression_enum_t)options->key_options.compression, /* compression */
-        options->key_options.compression_level,                   /* compression_level */
-        options->key_options.rsa_bits                            /* rsa_bits */
-    );
+    model_KeyOptions_start(B);
+    model_KeyOptions_algorithm_add(B, (model_Algorithm_enum_t)options->key_options.algorithm);
+    model_KeyOptions_curve_add(B, (model_Curve_enum_t)options->key_options.curve);
+    model_KeyOptions_hash_add(B, (model_Hash_enum_t)options->key_options.hash);
+    model_KeyOptions_cipher_add(B, (model_Cipher_enum_t)options->key_options.cipher);
+    model_KeyOptions_compression_add(B, (model_Compression_enum_t)options->key_options.compression);
+    model_KeyOptions_compression_level_add(B, options->key_options.compression_level);
+    model_KeyOptions_rsa_bits_add(B, options->key_options.rsa_bits);
+    model_KeyOptions_ref_t key_options_ref = model_KeyOptions_end(B);
     
     /* Create Options */
-    model_Options_ref_t options_ref = model_Options_create(B,
-        name_ref,       /* name */
-        comment_ref,    /* comment */  
-        email_ref,      /* email */
-        passphrase_ref, /* passphrase */
-        key_options_ref /* key_options */
-    );
+    model_Options_start(B);
+    if (name_ref) model_Options_name_add(B, name_ref);
+    if (comment_ref) model_Options_comment_add(B, comment_ref);
+    if (email_ref) model_Options_email_add(B, email_ref);
+    if (passphrase_ref) model_Options_passphrase_add(B, passphrase_ref);
+    if (key_options_ref) model_Options_key_options_add(B, key_options_ref);
+    model_Options_ref_t options_ref = model_Options_end(B);
     
     /* Create GenerateRequest */
     model_GenerateRequest_ref_t request_ref = model_GenerateRequest_create(B, options_ref);

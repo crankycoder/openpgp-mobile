@@ -26,24 +26,22 @@ TEST_CASE(create_generate_request) {
     flatbuffers_string_ref_t name_ref = flatbuffers_string_create_str(B, "Test User");
     
     /* Create KeyOptions with defaults */
-    model_KeyOptions_ref_t key_opts = model_KeyOptions_create(B,
-        model_Algorithm_RSA,      /* algorithm */
-        model_Curve_P256,        /* curve */
-        model_Hash_SHA256,       /* hash */
-        model_Cipher_AES128,     /* cipher */
-        model_Compression_NONE,  /* compression */
-        -1,                     /* compression_level */
-        2048                    /* rsa_bits */
-    );
+    model_KeyOptions_start(B);
+    model_KeyOptions_algorithm_add(B, model_Algorithm_RSA);
+    model_KeyOptions_curve_add(B, model_Curve_P256);
+    model_KeyOptions_hash_add(B, model_Hash_SHA256);
+    model_KeyOptions_cipher_add(B, model_Cipher_AES128);
+    model_KeyOptions_compression_add(B, model_Compression_NONE);
+    model_KeyOptions_compression_level_add(B, -1);
+    model_KeyOptions_rsa_bits_add(B, 2048);
+    model_KeyOptions_ref_t key_opts = model_KeyOptions_end(B);
     
     /* Create Options */
-    model_Options_ref_t opts = model_Options_create(B,
-        name_ref,       /* name */
-        0,             /* comment */
-        email_ref,     /* email */
-        0,             /* passphrase */
-        key_opts       /* key_options */
-    );
+    model_Options_start(B);
+    model_Options_name_add(B, name_ref);
+    model_Options_email_add(B, email_ref);
+    model_Options_key_options_add(B, key_opts);
+    model_Options_ref_t opts = model_Options_end(B);
     
     /* Create GenerateRequest */
     model_GenerateRequest_ref_t request = model_GenerateRequest_create(B, opts);
