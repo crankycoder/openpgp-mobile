@@ -85,11 +85,22 @@ TEST_CASE(parse_keypair_response) {
     flatbuffers_string_ref_t pub_ref = flatbuffers_string_create_str(B, public_key);
     flatbuffers_string_ref_t priv_ref = flatbuffers_string_create_str(B, private_key);
     
-    model_KeyPair_ref_t keypair = model_KeyPair_create(B, pub_ref, priv_ref);
-    model_KeyPairResponse_create_as_root(B, keypair, 0);
+    /* Build KeyPair manually */
+    model_KeyPair_start(B);
+    model_KeyPair_public_key_add(B, pub_ref);
+    model_KeyPair_private_key_add(B, priv_ref);
+    model_KeyPair_ref_t keypair = model_KeyPair_end(B);
     
-    size_t size;
-    void *buffer = flatcc_builder_finalize_aligned_buffer(B, &size);
+    /* Build KeyPairResponse */
+    model_KeyPairResponse_start(B);
+    model_KeyPairResponse_output_add(B, keypair);
+    model_KeyPairResponse_ref_t response_ref = model_KeyPairResponse_end(B);
+    
+    /* Finish buffer */
+    flatcc_builder_end_buffer(B, response_ref);
+    
+    size_t size = flatcc_builder_get_buffer_size(B);
+    void *buffer = flatcc_builder_get_direct_buffer(B, &size);
     TEST_ASSERT_NOT_NULL(buffer);
     TEST_ASSERT(size > 0);
     
@@ -109,7 +120,6 @@ TEST_CASE(parse_keypair_response) {
     TEST_ASSERT_STRING_EQUAL(public_key, model_KeyPair_public_key(kp));
     TEST_ASSERT_STRING_EQUAL(private_key, model_KeyPair_private_key(kp));
     
-    flatcc_builder_aligned_free(buffer);
     flatcc_builder_clear(B);
     
     return 0;
