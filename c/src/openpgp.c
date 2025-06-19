@@ -1539,107 +1539,97 @@ openpgp_result_t openpgp_encrypt(const char *message,
                                  "Multiple recipients not yet supported");
     }
 
-    /* Build FlatBuffer request */
+    /* Build EncryptRequest */
     flatcc_builder_t builder;
     flatcc_builder_init(&builder);
     
-    /* Create message string */
+    /* Create the request manually */
+    model_EncryptRequest_start_as_root(&builder);
+    
+    /* Add message field */
     flatbuffers_string_ref_t message_ref = flatbuffers_string_create_str(&builder, message);
-    flatbuffers_string_ref_t public_key_ref = flatbuffers_string_create_str(&builder, recipient_keys[0]);
-    
-    /* Create options if provided */
-    model_KeyOptions_ref_t key_options_ref = 0;
-    if (options) {
-        key_options_ref = create_key_options(&builder, options);
-    }
-    
-    /* Build EncryptRequest */
-    model_EncryptRequest_start(&builder);
     model_EncryptRequest_message_add(&builder, message_ref);
+    
+    /* Add public_key field (only first recipient for now) */
+    flatbuffers_string_ref_t public_key_ref = flatbuffers_string_create_str(&builder, recipient_keys[0]);
     model_EncryptRequest_public_key_add(&builder, public_key_ref);
-    if (key_options_ref) {
+    
+    /* Add options field if provided */
+    if (options) {
+        model_KeyOptions_ref_t key_options_ref = build_key_options(&builder, options);
         model_EncryptRequest_options_add(&builder, key_options_ref);
     }
-    model_EncryptRequest_ref_t encrypt_request = model_EncryptRequest_end(&builder);
     
-    /* Finalize the buffer */
-    flatbuffers_buffer_ref_t buffer_ref = model_EncryptRequest_create_as_root(&builder, encrypt_request);
+    model_EncryptRequest_end_as_root(&builder);
     
-    /* Get buffer data */
+    /* Get the buffer */
     size_t size;
-    uint8_t *buffer_data = (uint8_t *)flatcc_builder_get_direct_buffer(&builder, &size);
-    if (!buffer_data) {
+    void *buffer = flatcc_builder_finalize_aligned_buffer(&builder, &size);
+    if (!buffer) {
         flatcc_builder_clear(&builder);
         return create_error_result(OPENPGP_ERROR_SERIALIZATION,
                                  "Failed to serialize EncryptRequest");
     }
     
     /* Call bridge */
-    bridge_response_t *response = call_openpgp_bridge("encrypt", buffer_data, size);
+    BytesReturn* response = g_openpgp.bridge_call("encrypt", buffer, size);
+    
+    /* Free the builder and buffer */
+    flatcc_builder_aligned_free(buffer);
     flatcc_builder_clear(&builder);
     
+    /* Handle response */
     if (!response) {
-        return create_error_result(OPENPGP_ERROR_BRIDGE_CALL,
-                                 "Bridge call failed");
-    }
-    
-    if (response->error) {
-        openpgp_result_t result = create_error_result(OPENPGP_ERROR_BRIDGE_CALL, response->error);
-        if (response->error) free(response->error);
-        if (response->message) free(response->message);
-        free(response);
-        return result;
+        return create_error_result(OPENPGP_ERROR_BRIDGE_CALL, "Bridge call failed");
     }
     
     /* Parse StringResponse */
     model_StringResponse_table_t string_response = model_StringResponse_as_root(response->message);
     if (!string_response) {
+        /* Free response if needed */
         if (response->error) free(response->error);
         if (response->message) free(response->message);
         free(response);
-        return create_error_result(OPENPGP_ERROR_SERIALIZATION,
-                                 "Failed to parse StringResponse");
+        return create_error_result(OPENPGP_ERROR_SERIALIZATION, "Failed to parse StringResponse");
     }
     
     /* Check for error in response */
-    flatbuffers_string_t response_error = model_StringResponse_error(string_response);
-    if (response_error && strlen(response_error) > 0) {
-        openpgp_result_t result = create_error_result(OPENPGP_ERROR_BRIDGE_CALL, response_error);
+    flatbuffers_string_t error = model_StringResponse_error(string_response);
+    if (error && strlen(error) > 0) {
+        char *error_copy = duplicate_string(error);
+        /* Free response */
         if (response->error) free(response->error);
         if (response->message) free(response->message);
         free(response);
-        return result;
+        return create_error_result(OPENPGP_ERROR_ENCRYPTION_FAILED, error_copy);
     }
     
-    /* Extract encrypted message */
-    flatbuffers_string_t encrypted_message = model_StringResponse_output(string_response);
-    if (!encrypted_message) {
+    /* Get the encrypted message */
+    flatbuffers_string_t encrypted_str = model_StringResponse_output(string_response);
+    if (!encrypted_str) {
+        /* Free response */
         if (response->error) free(response->error);
         if (response->message) free(response->message);
         free(response);
-        return create_error_result(OPENPGP_ERROR_BRIDGE_CALL,
-                                 "No encrypted message in response");
+        return create_error_result(OPENPGP_ERROR_SERIALIZATION, "No encrypted message in response");
     }
     
-    /* Copy the encrypted message */
-    size_t encrypted_len = strlen(encrypted_message);
-    char *encrypted_copy = malloc(encrypted_len + 1);
+    /* Duplicate the encrypted message string */
+    char *encrypted_copy = duplicate_string(encrypted_str);
     if (!encrypted_copy) {
+        /* Free response */
         if (response->error) free(response->error);
         if (response->message) free(response->message);
         free(response);
-        return create_error_result(OPENPGP_ERROR_MEMORY_ALLOCATION,
-                                 "Failed to allocate memory for encrypted message");
+        return create_error_result(OPENPGP_ERROR_MEMORY_ALLOCATION, "Failed to copy encrypted message");
     }
-    
-    strcpy(encrypted_copy, encrypted_message);
     
     /* Free response */
     if (response->error) free(response->error);
     if (response->message) free(response->message);
     free(response);
     
-    return create_success_result(encrypted_copy, encrypted_len + 1);
+    return create_success_result(encrypted_copy, strlen(encrypted_copy) + 1);
 }
 
 openpgp_result_t openpgp_decrypt(const char *message,
@@ -1658,114 +1648,103 @@ openpgp_result_t openpgp_decrypt(const char *message,
                                  "Library not initialized");
     }
 
-    /* Build FlatBuffer request */
+    /* Build DecryptRequest */
     flatcc_builder_t builder;
     flatcc_builder_init(&builder);
     
-    /* Create string references */
+    /* Create the request manually */
+    model_DecryptRequest_start_as_root(&builder);
+    
+    /* Add message field */
     flatbuffers_string_ref_t message_ref = flatbuffers_string_create_str(&builder, message);
-    flatbuffers_string_ref_t private_key_ref = flatbuffers_string_create_str(&builder, private_key);
-    flatbuffers_string_ref_t passphrase_ref = 0;
-    if (passphrase) {
-        passphrase_ref = flatbuffers_string_create_str(&builder, passphrase);
-    }
-    
-    /* Create options if provided */
-    model_KeyOptions_ref_t key_options_ref = 0;
-    if (options) {
-        key_options_ref = create_key_options(&builder, options);
-    }
-    
-    /* Build DecryptRequest */
-    model_DecryptRequest_start(&builder);
     model_DecryptRequest_message_add(&builder, message_ref);
+    
+    /* Add private_key field */
+    flatbuffers_string_ref_t private_key_ref = flatbuffers_string_create_str(&builder, private_key);
     model_DecryptRequest_private_key_add(&builder, private_key_ref);
-    if (passphrase_ref) {
+    
+    /* Add passphrase field if provided */
+    if (passphrase) {
+        flatbuffers_string_ref_t passphrase_ref = flatbuffers_string_create_str(&builder, passphrase);
         model_DecryptRequest_passphrase_add(&builder, passphrase_ref);
     }
-    if (key_options_ref) {
+    
+    /* Add options field if provided */
+    if (options) {
+        model_KeyOptions_ref_t key_options_ref = build_key_options(&builder, options);
         model_DecryptRequest_options_add(&builder, key_options_ref);
     }
-    model_DecryptRequest_ref_t decrypt_request = model_DecryptRequest_end(&builder);
     
-    /* Finalize the buffer */
-    flatbuffers_buffer_ref_t buffer_ref = model_DecryptRequest_create_as_root(&builder, decrypt_request);
+    model_DecryptRequest_end_as_root(&builder);
     
-    /* Get buffer data */
+    /* Get the buffer */
     size_t size;
-    uint8_t *buffer_data = (uint8_t *)flatcc_builder_get_direct_buffer(&builder, &size);
-    if (!buffer_data) {
+    void *buffer = flatcc_builder_finalize_aligned_buffer(&builder, &size);
+    if (!buffer) {
         flatcc_builder_clear(&builder);
         return create_error_result(OPENPGP_ERROR_SERIALIZATION,
                                  "Failed to serialize DecryptRequest");
     }
     
     /* Call bridge */
-    bridge_response_t *response = call_openpgp_bridge("decrypt", buffer_data, size);
+    BytesReturn* response = g_openpgp.bridge_call("decrypt", buffer, size);
+    
+    /* Free the builder and buffer */
+    flatcc_builder_aligned_free(buffer);
     flatcc_builder_clear(&builder);
     
+    /* Handle response */
     if (!response) {
-        return create_error_result(OPENPGP_ERROR_BRIDGE_CALL,
-                                 "Bridge call failed");
-    }
-    
-    if (response->error) {
-        openpgp_result_t result = create_error_result(OPENPGP_ERROR_BRIDGE_CALL, response->error);
-        if (response->error) free(response->error);
-        if (response->message) free(response->message);
-        free(response);
-        return result;
+        return create_error_result(OPENPGP_ERROR_BRIDGE_CALL, "Bridge call failed");
     }
     
     /* Parse StringResponse */
     model_StringResponse_table_t string_response = model_StringResponse_as_root(response->message);
     if (!string_response) {
+        /* Free response if needed */
         if (response->error) free(response->error);
         if (response->message) free(response->message);
         free(response);
-        return create_error_result(OPENPGP_ERROR_SERIALIZATION,
-                                 "Failed to parse StringResponse");
+        return create_error_result(OPENPGP_ERROR_SERIALIZATION, "Failed to parse StringResponse");
     }
     
     /* Check for error in response */
-    flatbuffers_string_t response_error = model_StringResponse_error(string_response);
-    if (response_error && strlen(response_error) > 0) {
-        openpgp_result_t result = create_error_result(OPENPGP_ERROR_BRIDGE_CALL, response_error);
+    flatbuffers_string_t error = model_StringResponse_error(string_response);
+    if (error && strlen(error) > 0) {
+        char *error_copy = duplicate_string(error);
+        /* Free response */
         if (response->error) free(response->error);
         if (response->message) free(response->message);
         free(response);
-        return result;
+        return create_error_result(OPENPGP_ERROR_DECRYPTION_FAILED, error_copy);
     }
     
-    /* Extract decrypted message */
-    flatbuffers_string_t decrypted_message = model_StringResponse_output(string_response);
-    if (!decrypted_message) {
+    /* Get the decrypted message */
+    flatbuffers_string_t decrypted_str = model_StringResponse_output(string_response);
+    if (!decrypted_str) {
+        /* Free response */
         if (response->error) free(response->error);
         if (response->message) free(response->message);
         free(response);
-        return create_error_result(OPENPGP_ERROR_BRIDGE_CALL,
-                                 "No decrypted message in response");
+        return create_error_result(OPENPGP_ERROR_SERIALIZATION, "No decrypted message in response");
     }
     
-    /* Copy the decrypted message */
-    size_t decrypted_len = strlen(decrypted_message);
-    char *decrypted_copy = malloc(decrypted_len + 1);
+    /* Duplicate the decrypted message string */
+    char *decrypted_copy = duplicate_string(decrypted_str);
     if (!decrypted_copy) {
+        /* Free response */
         if (response->error) free(response->error);
         if (response->message) free(response->message);
         free(response);
-        return create_error_result(OPENPGP_ERROR_MEMORY_ALLOCATION,
-                                 "Failed to allocate memory for decrypted message");
+        return create_error_result(OPENPGP_ERROR_MEMORY_ALLOCATION, "Failed to copy decrypted message");
     }
-    
-    strcpy(decrypted_copy, decrypted_message);
     
     /* Free response */
     if (response->error) free(response->error);
     if (response->message) free(response->message);
     free(response);
     
-    return create_success_result(decrypted_copy, decrypted_len + 1);
+    return create_success_result(decrypted_copy, strlen(decrypted_copy) + 1);
 }
 
 openpgp_result_t openpgp_encrypt_file(const char *input_file,
