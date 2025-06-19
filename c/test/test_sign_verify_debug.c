@@ -48,11 +48,20 @@ static char* load_test_private_key_no_passphrase(void) {
     const char* key_path = "c/test/gpg-test-keys/test-private-key.asc";
     
     DEBUG_PRINT("Loading private key from %s", key_path);
+    DEBUG_PRINT("Current working directory: %s", getcwd(NULL, 0));
     
     FILE* file = fopen(key_path, "r");
     if (!file) {
         DEBUG_PRINT("Failed to open key file: %s", key_path);
-        return NULL;
+        // Try alternative path
+        const char* alt_path = "test/gpg-test-keys/test-private-key.asc";
+        DEBUG_PRINT("Trying alternative path: %s", alt_path);
+        file = fopen(alt_path, "r");
+        if (!file) {
+            DEBUG_PRINT("Alternative path also failed");
+            return NULL;
+        }
+        key_path = alt_path;
     }
     
     // Get file size
@@ -90,7 +99,15 @@ static char* load_test_public_key_no_passphrase(void) {
     FILE* file = fopen(key_path, "r");
     if (!file) {
         DEBUG_PRINT("Failed to open key file: %s", key_path);
-        return NULL;
+        // Try alternative path
+        const char* alt_path = "test/gpg-test-keys/test-public-key.asc";
+        DEBUG_PRINT("Trying alternative path: %s", alt_path);
+        file = fopen(alt_path, "r");
+        if (!file) {
+            DEBUG_PRINT("Alternative path also failed");
+            return NULL;
+        }
+        key_path = alt_path;
     }
     
     // Get file size
