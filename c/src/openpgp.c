@@ -243,6 +243,8 @@ static openpgp_result_t serialize_generate_request(const openpgp_options_t *opti
     flatcc_builder_t builder;
     flatcc_builder_t *B = &builder;
     
+    /* Initialize the builder with explicit buffer size */
+    memset(B, 0, sizeof(flatcc_builder_t));
     if (flatcc_builder_init(B)) {
         return create_error_result(OPENPGP_ERROR_MEMORY_ALLOCATION, "Failed to initialize FlatBuffer builder");
     }
@@ -290,7 +292,8 @@ static openpgp_result_t serialize_generate_request(const openpgp_options_t *opti
     model_GenerateRequest_ref_t request_ref = model_GenerateRequest_create(B, options_ref);
     
     /* Finish the buffer */
-    if (!flatcc_builder_end_buffer(B, request_ref)) {
+    flatbuffers_buffer_ref_t buffer_ref = flatcc_builder_end_buffer(B, request_ref);
+    if (!buffer_ref) {
         flatcc_builder_clear(B);
         return create_error_result(OPENPGP_ERROR_SERIALIZATION, "Failed to create FlatBuffer");
     }
