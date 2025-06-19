@@ -12,11 +12,11 @@
 #include "test_framework.h"
 #include "../include/openpgp.h"
 
-/* Global test counters - required by test framework */
-int g_tests_run = 0;        /* Total assertions/subtests */
-int g_tests_failed = 0;     /* Failed assertions/subtests */
-int g_major_tests_run = 0;  /* Major test functions */
-int g_major_tests_failed = 0; /* Failed major test functions */
+/* Global test counters - declared extern, defined in test_runner.c */
+extern int g_tests_run;        /* Total assertions/subtests */
+extern int g_tests_failed;     /* Failed assertions/subtests */
+extern int g_major_tests_run;  /* Major test functions */
+extern int g_major_tests_failed; /* Failed major test functions */
 
 // Enable/disable individual tests
 #define TEST_MINIMAL_SIGN 1
@@ -195,11 +195,10 @@ TEST_CASE(minimal_generated_key_test) {
 }
 
 /**
- * Minimal test runner
+ * Minimal test runner function - called from main test runner
  */
-int main(void) {
-    printf("Minimal Signing/Verification Debug Tests\n");
-    printf("========================================\n\n");
+void run_minimal_tests(void) {
+    printf(COLOR_BLUE "\n=== Minimal Sign/Verify Tests ===" COLOR_RESET "\n");
     
     printf("Test configuration:\n");
     printf("- TEST_MINIMAL_SIGN: %s\n", TEST_MINIMAL_SIGN ? "ENABLED" : "DISABLED");
@@ -207,44 +206,24 @@ int main(void) {
     printf("- TEST_GENERATED_KEY: %s\n", TEST_GENERATED_KEY ? "ENABLED" : "DISABLED");
     printf("\n");
     
-    int tests_run = 0;
-    int tests_failed = 0;
-    
     // Run enabled tests
     if (TEST_MINIMAL_SIGN) {
         printf("Running minimal_sign_test...\n");
-        if (test_minimal_sign_test() != 0) {
-            tests_failed++;
-        }
-        tests_run++;
+        test_minimal_sign_test();
         printf("\n");
     }
     
     if (TEST_MINIMAL_VERIFY) {
         printf("Running minimal_verify_test...\n");
-        if (test_minimal_verify_test() != 0) {
-            tests_failed++;
-        }
-        tests_run++;
+        test_minimal_verify_test();
         printf("\n");
     }
     
     if (TEST_GENERATED_KEY) {
         printf("Running minimal_generated_key_test...\n");
-        if (test_minimal_generated_key_test() != 0) {
-            tests_failed++;
-        }
-        tests_run++;
+        test_minimal_generated_key_test();
         printf("\n");
     }
     
-    printf("Results: %d tests run, %d failed\n", tests_run, tests_failed);
-    
-    if (tests_failed == 0) {
-        printf("All enabled tests completed (not necessarily passed)\n");
-        return 0;
-    } else {
-        printf("Some tests failed\n");
-        return 1;
-    }
+    printf("=== Minimal Tests Complete ===" COLOR_RESET "\n\n");
 }

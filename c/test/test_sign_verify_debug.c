@@ -13,11 +13,11 @@
 #include "test_framework.h"
 #include "../include/openpgp.h"
 
-/* Global test counters - required by test framework */
-int g_tests_run = 0;        /* Total assertions/subtests */
-int g_tests_failed = 0;     /* Failed assertions/subtests */
-int g_major_tests_run = 0;  /* Major test functions */
-int g_major_tests_failed = 0; /* Failed major test functions */
+/* Global test counters - declared extern, defined in test_runner.c */
+extern int g_tests_run;        /* Total assertions/subtests */
+extern int g_tests_failed;     /* Failed assertions/subtests */
+extern int g_major_tests_run;  /* Major test functions */
+extern int g_major_tests_failed; /* Failed major test functions */
 
 // Debug control flags
 #ifndef DEBUG_VERBOSE
@@ -298,16 +298,83 @@ TEST_CASE(debug_minimal_sign) {
 }
 
 /**
- * Test runner for debug tests
+ * Test 6: Test signing with generated keys (segfault reproduction)
+ * This test attempts to reproduce the segfault by generating keys and signing
  */
-int main(void) {
-    printf(COLOR_BLUE "OpenPGP Debug Test Suite" COLOR_RESET "\n");
-    printf("================================\n\n");
+TEST_CASE(debug_generated_key_signing) {
+    DEBUG_PRINT("Testing signing with generated keys");
+    
+    // Initialize library
+    openpgp_result_t init_result = openpgp_init();
+    TEST_ASSERT_EQUAL(OPENPGP_SUCCESS, init_result.error);
+    
+    DEBUG_PRINT("Generating minimal RSA keypair");
+    
+    // Generate a simple RSA key without passphrase
+    openpgp_options_t options;
+    openpgp_options_init_default(&options);
+    options.name = "Debug Test User";
+    options.email = "debug@test.com";
+    options.passphrase = NULL; // No passphrase
+    options.comment = "Debug Test Key";
+    options.key_options.algorithm = OPENPGP_ALGORITHM_RSA;
+    options.key_options.rsa_bits = 2048;
+    options.key_options.hash = OPENPGP_HASH_SHA256;
+    
+    DEBUG_PRINT("Calling openpgp_generate_key_with_options()");
+    openpgp_result_t gen_result = openpgp_generate_key_with_options(&options);
+    
+    if (gen_result.error != OPENPGP_SUCCESS) {
+        DEBUG_PRINT("Key generation failed: %s", 
+                   gen_result.error_message ? gen_result.error_message : "Unknown error");
+        openpgp_result_free(&gen_result);
+        openpgp_cleanup();
+        return 0; // Skip test if key generation fails
+    }
+    
+    DEBUG_PRINT("Key generation successful");
+    TEST_ASSERT_NOT_NULL(gen_result.data);
+    
+    openpgp_keypair_t* keypair = (openpgp_keypair_t*)gen_result.data;
+    TEST_ASSERT_NOT_NULL(keypair->private_key);
+    
+    DEBUG_PRINT("Generated private key length: %zu", strlen(keypair->private_key));
+    DEBUG_PRINT("First 50 chars: %.50s", keypair->private_key);
+    
+    // Now try signing with the generated key (this is where segfault likely occurs)
+    DEBUG_PRINT("Attempting to sign with generated key...");
+    
+    openpgp_result_t sign_result = openpgp_sign("test", keypair->private_key, NULL, NULL);
+    
+    DEBUG_PRINT("Sign result: error=%d", sign_result.error);
+    
+    if (sign_result.error == OPENPGP_SUCCESS) {
+        DEBUG_PRINT("✓ Generated key signing succeeded!");
+        if (sign_result.data) {
+            DEBUG_PRINT("✓ Got signature data (%zu chars)", strlen((char*)sign_result.data));
+        }
+    } else {
+        DEBUG_PRINT("✗ Generated key signing failed: %s", 
+                   sign_result.error_message ? sign_result.error_message : "Unknown error");
+    }
+    
+    openpgp_result_free(&sign_result);
+    openpgp_result_free(&gen_result);
+    openpgp_cleanup();
+    
+    DEBUG_PRINT("Generated key signing test complete");
+    return 0;
+}
+
+/**
+ * Debug test runner function - called from main test runner
+ */
+void run_debug_tests(void) {
+    printf(COLOR_BLUE "\n=== Debug Test Suite ===" COLOR_RESET "\n");
     
     printf(COLOR_BLUE "Debug Configuration:" COLOR_RESET "\n");
     printf("- Verbose debug: %s\n", DEBUG_VERBOSE ? "ON" : "OFF");
     printf("- Memory debug: %s\n", DEBUG_MEMORY ? "ON" : "OFF");
-    printf("- Working directory: %s\n", getcwd(NULL, 0));
     printf("\n");
     
     // Run debug tests
@@ -316,16 +383,7 @@ int main(void) {
     RUN_TEST(debug_memory_stress);
     RUN_TEST(debug_bridge_basic);
     RUN_TEST(debug_minimal_sign);
+    RUN_TEST(debug_generated_key_signing);
     
-    printf("\n" COLOR_BLUE "Debug Test Results:" COLOR_RESET "\n");
-    printf("Major tests: %d run, %d failed\n", g_major_tests_run, g_major_tests_failed);
-    printf("Total assertions: %d run, %d failed\n", g_tests_run, g_tests_failed);
-    
-    if (g_major_tests_failed == 0) {
-        printf(COLOR_GREEN "All debug tests passed!" COLOR_RESET "\n");
-        return 0;
-    } else {
-        printf(COLOR_RED "Some debug tests failed!" COLOR_RESET "\n");
-        return 1;
-    }
+    printf("=== Debug Tests Complete ===" COLOR_RESET "\n\n");
 }

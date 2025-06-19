@@ -64,6 +64,10 @@ extern int test_ed25519_generation_and_usage(void);
 extern int test_multi_recipient_with_generated_keys(void);
 extern int test_key_metadata_extraction_on_generated_keys(void);
 
+/* Debug test declarations */
+extern void run_debug_tests(void);
+extern void run_minimal_tests(void);
+
 int main(void) {
     printf(COLOR_BLUE "OpenPGP C Wrapper Library Tests" COLOR_RESET "\n");
     printf("======================================\n\n");
@@ -171,6 +175,10 @@ int main(void) {
     
     /* Run verification operation tests */
     run_verify_tests();
+
+    /* Run debug tests to isolate segfault */
+    run_debug_tests();
+    run_minimal_tests();
 
     /* Print summary */
     printf("\n======================================\n");
