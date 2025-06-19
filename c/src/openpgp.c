@@ -128,8 +128,13 @@ openpgp_result_t openpgp_generate_key_with_options(const openpgp_options_t *opti
         return serialize_result;
     }
     
-    /* Debug: print buffer size */
+    /* Debug: print buffer size and first few bytes */
     printf("DEBUG: FlatBuffer request size: %zu\n", request_size);
+    if (request_size >= 8) {
+        unsigned char *bytes = (unsigned char *)request_buffer;
+        printf("DEBUG: First 8 bytes: %02x %02x %02x %02x %02x %02x %02x %02x\n",
+               bytes[0], bytes[1], bytes[2], bytes[3], bytes[4], bytes[5], bytes[6], bytes[7]);
+    }
 
     /* Call the bridge */
     BytesReturn *bridge_result = g_openpgp.bridge_call(
@@ -290,13 +295,13 @@ static openpgp_result_t serialize_generate_request(const openpgp_options_t *opti
     /* Create GenerateRequest */
     model_GenerateRequest_ref_t request_ref = model_GenerateRequest_create(B, options_ref);
     
-    /* Finish buffer */
+    /* Finish the buffer */
     if (!flatcc_builder_end_buffer(B, request_ref)) {
         flatcc_builder_clear(B);
         return create_error_result(OPENPGP_ERROR_SERIALIZATION, "Failed to create FlatBuffer");
     }
     
-    /* Get buffer data */
+    /* Get buffer size and data */
     *buffer_size = flatcc_builder_get_buffer_size(B);
     void *data = malloc(*buffer_size);
     if (!data) {
@@ -304,6 +309,7 @@ static openpgp_result_t serialize_generate_request(const openpgp_options_t *opti
         return create_error_result(OPENPGP_ERROR_MEMORY_ALLOCATION, "Failed to allocate buffer");
     }
     
+    /* Copy the buffer data */
     void *builder_buffer = flatcc_builder_get_direct_buffer(B, buffer_size);
     memcpy(data, builder_buffer, *buffer_size);
     *buffer = data;
