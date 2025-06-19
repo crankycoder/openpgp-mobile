@@ -2733,6 +2733,6 @@ openpgp_result_t openpgp_verify_bytes(const uint8_t *data,
         return create_error_result(OPENPGP_ERROR_LIBRARY_NOT_INITIALIZED, "Library not initialized");
     }
 
-    // Stub implementation for TDD
-    return create_error_result(OPENPGP_ERROR_VERIFICATION_FAILED, "Bytes verification not yet implemented");
+    /* This is essentially the same as verify_data, but with explicit uint8_t type */
+    return openpgp_verify_data((const void*)data, data_len, signature, public_key, result);
 }
