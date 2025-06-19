@@ -49,6 +49,9 @@ extern int test_encrypt_null_recipients(void);
 extern int test_encrypt_zero_recipients(void);
 extern int test_decrypt_wrong_private_key(void);
 
+/* Signing operation test declarations */
+extern void run_signing_tests(void);
+
 /* Key Generation Integration test declarations */
 extern int test_rsa_2048_generation_and_usage(void);
 extern int test_rsa_2048_with_passphrase_generation_and_usage(void);
@@ -149,6 +152,12 @@ int main(void) {
     RUN_TEST(ed25519_generation_and_usage);
     RUN_TEST(multi_recipient_with_generated_keys);
     RUN_TEST(key_metadata_extraction_on_generated_keys);
+
+    printf("\n" COLOR_BLUE "Signing Operation Tests" COLOR_RESET "\n");
+    printf("-----------------------\n");
+    
+    /* Run signing operation tests */
+    run_signing_tests();
 
     /* Print summary */
     printf("\n======================================\n");
