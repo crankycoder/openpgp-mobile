@@ -19,6 +19,9 @@ extern int test_parse_keypair_response(void);
 extern int test_flatbuffer_serialization_simple(void);
 extern int test_flatbuffer_serialization_with_strings(void);
 extern int test_flatbuffer_serialization_full_request(void);
+extern int test_build_empty_generate_request(void);
+extern int test_build_request_with_empty_options(void);
+extern int test_build_request_with_one_string(void);
 
 int main(void) {
     printf(COLOR_BLUE "OpenPGP C Wrapper Library Tests" COLOR_RESET "\n");
@@ -28,7 +31,15 @@ int main(void) {
     g_tests_run = 0;
     g_tests_failed = 0;
 
-    /* Run FlatBuffer serialization tests first to debug */
+    /* Run incremental builder tests first */
+    printf("\n" COLOR_BLUE "Incremental Builder Tests" COLOR_RESET "\n");
+    printf("-------------------------\n");
+    
+    RUN_TEST(build_empty_generate_request);
+    RUN_TEST(build_request_with_empty_options);
+    RUN_TEST(build_request_with_one_string);
+    
+    /* Run FlatBuffer serialization tests */
     printf("\n" COLOR_BLUE "FlatBuffer Serialization Tests" COLOR_RESET "\n");
     printf("------------------------------\n");
     
