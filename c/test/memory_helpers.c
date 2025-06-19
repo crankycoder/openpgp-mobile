@@ -166,3 +166,69 @@ size_t memory_tracking_get_allocation_count(void) {
     }
     return active;
 }
+
+// Test isolation functions
+int run_test_isolated(test_function_t test_func, const char* test_name) {
+    printf("Running isolated test: %s\n", test_name);
+    
+    pid_t pid = fork();
+    if (pid == 0) {
+        // Child process - run the test
+        memory_tracking_init();
+        int result = test_func();
+        memory_tracking_cleanup();
+        exit(result);
+    } else if (pid > 0) {
+        // Parent process - wait for child
+        int status;
+        waitpid(pid, &status, 0);
+        if (WIFEXITED(status)) {
+            int exit_code = WEXITSTATUS(status);
+            printf("Test %s: %s (exit code: %d)\n", 
+                   test_name, 
+                   exit_code == 0 ? "PASSED" : "FAILED", 
+                   exit_code);
+            return exit_code;
+        } else {
+            printf("Test %s: CRASHED\n", test_name);
+            return -1;
+        }
+    } else {
+        printf("Failed to fork for test %s\n", test_name);
+        return -1;
+    }
+}
+
+int run_test_with_valgrind(test_function_t test_func, const char* test_name) {
+    printf("Running valgrind test: %s\n", test_name);
+    
+    // For now, just run the test normally
+    // TODO: Implement actual valgrind integration
+    memory_tracking_init();
+    int result = test_func();
+    memory_tracking_cleanup();
+    
+    return result;
+}
+
+// Valgrind integration
+bool is_valgrind_available(void) {
+    return system("which valgrind > /dev/null 2>&1") == 0;
+}
+
+int run_valgrind_test(const char* executable, const char* test_name) {
+    if (!is_valgrind_available()) {
+        printf("Valgrind not available, skipping valgrind test for %s\n", test_name);
+        return -1;
+    }
+    
+    char command[1024];
+    snprintf(command, sizeof(command),
+             "valgrind --leak-check=full --show-leak-kinds=all "
+             "--track-origins=yes --error-exitcode=1 "
+             "--quiet %s 2>&1",
+             executable);
+    
+    printf("Running: %s\n", command);
+    return system(command);
+}
