@@ -69,4 +69,36 @@ static char* load_test_message(void) {
     return read_fixture_file("test/fixtures/test-message.txt");
 }
 
+/**
+ * Load test public key (with passphrase protection) from fixture file.
+ * Caller must free the returned pointer.
+ */
+static char* load_test_public_key_with_passphrase(void) {
+    return read_fixture_file("test/fixtures/test-public-key-with-passphrase.asc");
+}
+
+/**
+ * Load test private key (with passphrase protection) from fixture file.
+ * Caller must free the returned pointer.
+ */
+static char* load_test_private_key_with_passphrase(void) {
+    return read_fixture_file("test/fixtures/test-private-key-with-passphrase.asc");
+}
+
+/**
+ * Load test passphrase from fixture file.
+ * Caller must free the returned pointer.
+ */
+static char* load_test_passphrase(void) {
+    char* passphrase = read_fixture_file("test/fixtures/test-passphrase.txt");
+    if (passphrase) {
+        // Remove trailing newline if present
+        size_t len = strlen(passphrase);
+        if (len > 0 && passphrase[len-1] == '\n') {
+            passphrase[len-1] = '\0';
+        }
+    }
+    return passphrase;
+}
+
 #endif // TEST_FIXTURES_H
