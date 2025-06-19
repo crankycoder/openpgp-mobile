@@ -2406,4 +2406,116 @@ openpgp_result_t openpgp_sign_data_bytes(const uint8_t *data, size_t data_len,
     free(response);
     
     return create_success_result(signature_copy, strlen(signature_copy) + 1);
+}/*
+ * Verification Operations
+ */
+
+/* Memory management for verification results */
+void openpgp_verification_result_free(openpgp_verification_result_t *result) {
+    if (result) {
+        free(result->signer_key_id);
+        free(result->signer_fingerprint);
+        free(result->original_data);
+        free(result->signature_time);
+        free(result->error_details);
+        free(result);
+    }
+}
+
+/* Helper function to create verification result */
+static openpgp_verification_result_t* create_verification_result(void) {
+    openpgp_verification_result_t *result = calloc(1, sizeof(openpgp_verification_result_t));
+    if (!result) {
+        return NULL;
+    }
+    return result;
+}
+
+openpgp_result_t openpgp_verify(const char *signed_message,
+                               const char *public_key,
+                               openpgp_verification_result_t **result) {
+    if (!result) {
+        return create_error_result(OPENPGP_ERROR_INVALID_INPUT, "Result parameter cannot be NULL");
+    }
+    
+    *result = NULL;
+    
+    if (!signed_message || !public_key) {
+        return create_error_result(OPENPGP_ERROR_INVALID_INPUT, "Signed message and public key cannot be NULL");
+    }
+
+    if (!g_openpgp.initialized) {
+        return create_error_result(OPENPGP_ERROR_LIBRARY_NOT_INITIALIZED, "Library not initialized");
+    }
+
+    // Stub implementation for TDD - will be replaced with actual FlatBuffer implementation
+    return create_error_result(OPENPGP_ERROR_VERIFICATION_FAILED, "Verification not yet implemented");
+}
+
+openpgp_result_t openpgp_verify_data(const void *data,
+                                    size_t data_len,
+                                    const char *signature,
+                                    const char *public_key,
+                                    openpgp_verification_result_t **result) {
+    if (!result) {
+        return create_error_result(OPENPGP_ERROR_INVALID_INPUT, "Result parameter cannot be NULL");
+    }
+    
+    *result = NULL;
+    
+    if (!data || data_len == 0 || !signature || !public_key) {
+        return create_error_result(OPENPGP_ERROR_INVALID_INPUT, "Data, signature, and public key cannot be NULL/empty");
+    }
+
+    if (!g_openpgp.initialized) {
+        return create_error_result(OPENPGP_ERROR_LIBRARY_NOT_INITIALIZED, "Library not initialized");
+    }
+
+    // Stub implementation for TDD
+    return create_error_result(OPENPGP_ERROR_VERIFICATION_FAILED, "Data verification not yet implemented");
+}
+
+openpgp_result_t openpgp_verify_file(const char *file_path,
+                                    const char *signature,
+                                    const char *public_key,
+                                    openpgp_verification_result_t **result) {
+    if (!result) {
+        return create_error_result(OPENPGP_ERROR_INVALID_INPUT, "Result parameter cannot be NULL");
+    }
+    
+    *result = NULL;
+    
+    if (!file_path || !signature || !public_key) {
+        return create_error_result(OPENPGP_ERROR_INVALID_INPUT, "File path, signature, and public key cannot be NULL");
+    }
+
+    if (!g_openpgp.initialized) {
+        return create_error_result(OPENPGP_ERROR_LIBRARY_NOT_INITIALIZED, "Library not initialized");
+    }
+
+    // Stub implementation for TDD
+    return create_error_result(OPENPGP_ERROR_VERIFICATION_FAILED, "File verification not yet implemented");
+}
+
+openpgp_result_t openpgp_verify_bytes(const uint8_t *data,
+                                     size_t data_len,
+                                     const char *signature,
+                                     const char *public_key,
+                                     openpgp_verification_result_t **result) {
+    if (!result) {
+        return create_error_result(OPENPGP_ERROR_INVALID_INPUT, "Result parameter cannot be NULL");
+    }
+    
+    *result = NULL;
+    
+    if (!data || data_len == 0 || !signature || !public_key) {
+        return create_error_result(OPENPGP_ERROR_INVALID_INPUT, "Data, signature, and public key cannot be NULL/empty");
+    }
+
+    if (!g_openpgp.initialized) {
+        return create_error_result(OPENPGP_ERROR_LIBRARY_NOT_INITIALIZED, "Library not initialized");
+    }
+
+    // Stub implementation for TDD
+    return create_error_result(OPENPGP_ERROR_VERIFICATION_FAILED, "Bytes verification not yet implemented");
 }
