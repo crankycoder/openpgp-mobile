@@ -129,8 +129,25 @@ TEST_CASE(sign_data_with_generated_key) {
         return -1;
     }
     
+    printf("  ✓ Keypair");
+    fflush(stdout);
     openpgp_keypair_t* keypair = (openpgp_keypair_t*)gen_result.data;
-    printf("  ✓ Keypair generated successfully\n");
+    printf(" generated successfully\n");
+    printf("  DEBUG: About to check keypair validity...\n");
+    
+    // Safety checks
+    if (!keypair) {
+        printf("  ✗ Keypair is NULL\n");
+        openpgp_result_free(&gen_result);
+        openpgp_cleanup();
+        return -1;
+    }
+    if (!keypair->private_key) {
+        printf("  ✗ Private key is NULL\n");
+        openpgp_result_free(&gen_result);
+        openpgp_cleanup();
+        return -1;
+    }
     
     // Test sign_data function
     printf("  Testing sign_data function...\n");

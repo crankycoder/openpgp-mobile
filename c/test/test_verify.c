@@ -90,7 +90,10 @@ static char* create_test_signed_message(void) {
     }
     
     // Copy the signed message data
-    char* signed_message = strdup((char*)sign_result.data);
+    char* signed_message = NULL;
+    if (sign_result.data) {
+        signed_message = strdup((char*)sign_result.data);
+    }
     openpgp_result_free(&sign_result);
     openpgp_cleanup();
     
@@ -290,7 +293,9 @@ TEST_CASE(verify_wrong_public_key) {
     if (result) {
         openpgp_verification_result_free(result);
     }
-    free(signed_message);
+    if (signed_message) {
+        free(signed_message);
+    }
     return 0;
 }
 
