@@ -12,6 +12,12 @@
 #include "test_framework.h"
 #include "../include/openpgp.h"
 
+/* Global test counters - required by test framework */
+int g_tests_run = 0;        /* Total assertions/subtests */
+int g_tests_failed = 0;     /* Failed assertions/subtests */
+int g_major_tests_run = 0;  /* Major test functions */
+int g_major_tests_failed = 0; /* Failed major test functions */
+
 // Enable/disable individual tests
 #define TEST_MINIMAL_SIGN 1
 #define TEST_MINIMAL_VERIFY 1
