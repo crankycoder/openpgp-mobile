@@ -53,6 +53,9 @@ extern int test_decrypt_wrong_private_key(void);
 extern void run_signing_tests(void);
 extern void run_sign_integration_tests(void);
 
+/* Verification operation test declarations */
+extern int run_verify_tests(void);
+
 /* Key Generation Integration test declarations */
 extern int test_rsa_2048_generation_and_usage(void);
 extern int test_rsa_2048_with_passphrase_generation_and_usage(void);
@@ -162,6 +165,12 @@ int main(void) {
     
     /* Run signing integration tests */
     run_sign_integration_tests();
+
+    printf("\n" COLOR_BLUE "Verification Operation Tests" COLOR_RESET "\n");
+    printf("-----------------------------\n");
+    
+    /* Run verification operation tests */
+    run_verify_tests();
 
     /* Print summary */
     printf("\n======================================\n");
