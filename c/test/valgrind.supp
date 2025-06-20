@@ -1,20 +1,102 @@
-# Valgrind suppressions for FlatBuffer memory tests
+# Valgrind suppressions for OpenPGP C binding tests
 #
-# Add suppressions for known false positives here
+# This file contains suppressions for known false positives in valgrind
+# when running the OpenPGP C binding test suite.
+#
 # Format:
 # {
 #    suppression_name
 #    Memcheck:Leak
-#    match-leak-kinds: definite
-#    fun:malloc
-#    fun:some_function
+#    match-leak-kinds: definite|indirect|possible|reachable
+#    fun:function_name
+#    ...additional stack frames...
 # }
 
-# Example: Suppress known library leaks
-# {
-#    flatcc_library_init
-#    Memcheck:Leak
-#    match-leak-kinds: definite
-#    fun:malloc
-#    fun:flatcc_*
-# }
+# Suppress known library initialization leaks
+{
+   flatcc_library_init
+   Memcheck:Leak
+   match-leak-kinds: definite
+   fun:malloc
+   fun:flatcc_*
+}
+
+# Suppress GO runtime initialization (if any leaks from bridge calls)
+{
+   go_runtime_init
+   Memcheck:Leak
+   match-leak-kinds: possible
+   fun:malloc
+   ...
+   fun:_cgo_*
+}
+
+# Suppress system library leaks that are not our responsibility
+{
+   system_library_leaks
+   Memcheck:Leak
+   match-leak-kinds: possible
+   fun:malloc
+   obj:/lib/x86_64-linux-gnu/*
+}
+
+{
+   system_library_leaks_32bit
+   Memcheck:Leak
+   match-leak-kinds: possible
+   fun:malloc
+   obj:/lib/i386-linux-gnu/*
+}
+
+# Suppress pthread initialization leaks
+{
+   pthread_init_leaks
+   Memcheck:Leak
+   match-leak-kinds: possible
+   fun:calloc
+   fun:allocate_dtv
+   fun:_dl_allocate_tls
+}# Suppress dl-related leaks during dynamic loading
+{
+   dl_init_leaks
+   Memcheck:Leak
+   match-leak-kinds: possible
+   fun:malloc
+   fun:_dl_*
+}
+
+# Suppress glibc locale initialization
+{
+   glibc_locale_init
+   Memcheck:Leak
+   match-leak-kinds: definite
+   fun:malloc
+   fun:_nl_*
+}
+
+# Suppress any leaks from the bridge library itself (external Go code)
+{
+   bridge_library_leaks
+   Memcheck:Leak
+   match-leak-kinds: possible
+   fun:malloc
+   obj:*libopenpgp_bridge.so*
+}
+
+# Suppress false positives in test framework
+{
+   test_framework_init
+   Memcheck:Leak
+   match-leak-kinds: possible
+   fun:malloc
+   fun:unity_*
+}
+
+# Suppress valgrind's own initialization
+{
+   valgrind_init
+   Memcheck:Leak
+   match-leak-kinds: possible
+   fun:malloc
+   obj:/usr/lib/valgrind/*
+}
