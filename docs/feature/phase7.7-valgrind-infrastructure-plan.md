@@ -16,10 +16,42 @@ Based on Phase 7.6 discoveries, we must check for:
 
 ## Task Breakdown
 
+### Git Workflow and TDD Requirements for ALL Tasks
+
+**CRITICAL: Apply these rules to EVERY task below:**
+
+#### Git Workflow Rules:
+- **ALWAYS work on feature branches** - never commit directly to vng/c-bindings or master
+- **Create feature branch from vng/c-bindings** before starting any task
+- **COMMIT ON EVERY CHANGE** - commit immediately after every single file edit/creation/modification
+- **Use semantic commit format**: `<type>[scope]: <description>`
+- **Run tests before every commit** if available
+- **Merge to vng/c-bindings via Pull Request** when task complete
+
+#### Test-Driven Development Rules:
+- **Write tests FIRST** before implementing functionality
+- **Verify tests fail** before writing implementation
+- **Implement minimal code** to make tests pass
+- **Refactor while keeping tests green**
+- **Run all tests** after every change
+- **Use make c-test** to verify test status
+
+#### Commit Process for Each Task:
+1. Create feature branch: `git checkout -b feature/task-<n>-<description>`
+2. Write test first (commit)
+3. Verify test fails (run and document)
+4. Implement minimal functionality (commit)
+5. Make test pass (commit)
+6. Refactor if needed (commit)
+7. Run all tests to ensure no regressions (commit if fixes needed)
+8. Create PR to merge back to vng/c-bindings
+
 ### Task #1: Create Valgrind Test Infrastructure
 
 - Status: not started
 - Description: Set up automated valgrind testing with proper suppressions and reporting to enable systematic memory error detection across all test files
+- **Git Workflow**: Create branch `feature/task1-valgrind-infrastructure`, **COMMIT ON EVERY CHANGE** - commit after each script creation/modification
+- **TDD Approach**: Write test script that validates valgrind runner functionality, then implement the runner
 - Acceptance Criteria:
   - Script `/c/test/valgrind-runner.sh` exists and can run any test file under valgrind
   - Script accepts test executable name as parameter
@@ -28,6 +60,7 @@ Based on Phase 7.6 discoveries, we must check for:
   - Script `/c/test/memory-check-all.sh` exists to run all tests and aggregate results
   - Exit codes: 0 for clean run, 1 for memory errors
   - Scripts are executable and have proper shebang lines
+  - Test that validates script functionality exists and passes
 - Assumptions:
   - Valgrind is installed on the development system
   - Test executables are in the standard output directory
@@ -44,6 +77,8 @@ Based on Phase 7.6 discoveries, we must check for:
 
 - Status: not started
 - Description: Run each test file separately under valgrind to identify all memory issues and create a comprehensive report
+- **Git Workflow**: Create branch `feature/task2-valgrind-analysis`, **COMMIT ON EVERY CHANGE** - commit report and analysis scripts
+- **TDD Approach**: Write analysis automation script first, test it on known test files, then run comprehensive analysis
 - Acceptance Criteria:
   - Run valgrind on all 14 test files individually
   - Create report file `/c/test/valgrind-report.md` with findings
@@ -51,6 +86,7 @@ Based on Phase 7.6 discoveries, we must check for:
   - Identify specific functions causing issues
   - Prioritize issues by severity and frequency
   - Create reproducible test cases for each unique issue
+  - Analysis script that automates the process exists and is tested
 - Assumptions:
   - Test infrastructure from Task #1 is complete and working
 - Dependencies:
@@ -65,12 +101,15 @@ Based on Phase 7.6 discoveries, we must check for:
 
 - Status: not started
 - Description: Apply Phase 7.6 pattern fixes across all functions to eliminate memory leaks in error handling paths
+- **Git Workflow**: Create branch `feature/task3-error-path-fixes`, **COMMIT ON EVERY CHANGE** - commit after each function fix
+- **TDD Approach**: Write tests that trigger error paths and verify leaks, fix code to make tests pass with clean valgrind
 - Acceptance Criteria:
   - Audit all functions returning `openpgp_result_t`
   - Fix all error paths that leak `error_message`
   - Create helper function for consistent error handling
   - Zero memory leaks in error paths when re-running valgrind
   - All existing tests still pass
+  - Tests exist that specifically trigger error paths and verify no leaks
 - Assumptions:
   - Valgrind analysis from Task #2 is complete
 - Dependencies:
@@ -86,12 +125,15 @@ Based on Phase 7.6 discoveries, we must check for:
 
 - Status: not started
 - Description: Add null checks and size validation for all buffer operations to prevent crashes and overruns
+- **Git Workflow**: Create branch `feature/task4-buffer-fixes`, **COMMIT ON EVERY CHANGE** - commit after each serialize function fix
+- **TDD Approach**: Write tests with large/invalid buffers that trigger crashes, fix code to handle gracefully
 - Acceptance Criteria:
   - All `flatcc_builder_get_direct_buffer` calls have NULL checks
   - All buffer sizes are validated before use
   - Clear error messages for buffer allocation failures
   - No buffer overruns or invalid memory access in valgrind
   - Size limits are documented and enforced
+  - Tests exist that trigger buffer edge cases
 - Assumptions:
   - Buffer issues have been identified in Task #2
 - Dependencies:
@@ -106,6 +148,8 @@ Based on Phase 7.6 discoveries, we must check for:
 
 - Status: not started
 - Description: Ensure all library function returns are checked to prevent silent failures
+- **Git Workflow**: Create branch `feature/task5-return-value-checks`, **COMMIT ON EVERY CHANGE** - commit after checking each function type
+- **TDD Approach**: Write tests that cause malloc/strdup/etc to fail, verify proper error handling
 - Acceptance Criteria:
   - All malloc/calloc/realloc calls check for NULL
   - All strdup/strndup calls check for NULL
@@ -113,6 +157,7 @@ Based on Phase 7.6 discoveries, we must check for:
   - All model_*_create calls check for failures
   - Appropriate error handling for each failure type
   - No unchecked function calls remain
+  - Tests exist that simulate allocation failures
 - Assumptions:
   - Unchecked returns have been identified in analysis
 - Dependencies:
@@ -127,12 +172,15 @@ Based on Phase 7.6 discoveries, we must check for:
 
 - Status: not started
 - Description: Ensure tests don't interfere with each other through shared state or memory
+- **Git Workflow**: Create branch `feature/task6-test-isolation`, **COMMIT ON EVERY CHANGE** - commit isolation improvements
+- **TDD Approach**: Write tests that fail due to interference, implement isolation to make them pass
 - Acceptance Criteria:
   - Global state is reset between tests
   - Memory tracking is cleared between tests
   - Tests pass regardless of execution order
   - No test failures due to previous test state
   - Valgrind shows consistent results for each test
+  - Test exists that verifies isolation works correctly
 - Assumptions:
   - Test interference issues identified in Task #2
 - Dependencies:
@@ -148,12 +196,15 @@ Based on Phase 7.6 discoveries, we must check for:
 
 - Status: not started
 - Description: Prevent silent failures from size limits by adding explicit validation
+- **Git Workflow**: Create branch `feature/task7-size-validation`, **COMMIT ON EVERY CHANGE** - commit size validation changes
+- **TDD Approach**: Write tests with oversized data that should fail gracefully, implement validation
 - Acceptance Criteria:
   - Define MAX_FLATBUFFER_SIZE constant (4KB based on Phase 7.6 findings)
   - Add size validation before all FlatBuffer operations
   - Clear error messages when size limits exceeded
   - Document all size limits in header files
   - Tests for boundary conditions
+  - Tests exist that verify size limit enforcement
 - Assumptions:
   - Size limit issues have been identified
 - Dependencies:
@@ -168,6 +219,8 @@ Based on Phase 7.6 discoveries, we must check for:
 
 - Status: not started
 - Description: Create automated tests to prevent memory issue regressions
+- **Git Workflow**: Create branch `feature/task8-regression-tests`, **COMMIT ON EVERY CHANGE** - commit each new test file
+- **TDD Approach**: Write comprehensive tests covering all previously found issues
 - Acceptance Criteria:
   - Create `test_memory_error_paths.c` testing all error scenarios
   - Create `test_memory_large_data.c` testing size limits
@@ -175,6 +228,7 @@ Based on Phase 7.6 discoveries, we must check for:
   - Create `test_memory_edge_cases.c` for boundary conditions
   - All tests run clean under valgrind
   - Tests are integrated into make test target
+  - Tests cover all issues found in previous tasks
 - Assumptions:
   - All memory fixes from previous tasks are complete
 - Dependencies:
@@ -189,6 +243,8 @@ Based on Phase 7.6 discoveries, we must check for:
 
 - Status: not started
 - Description: Create comprehensive documentation for memory management
+- **Git Workflow**: Create branch `feature/task9-memory-docs`, **COMMIT ON EVERY CHANGE** - commit documentation updates
+- **TDD Approach**: Write documentation that can be validated against working code examples
 - Acceptance Criteria:
   - Create `/docs/c-memory-management.md` with guidelines
   - Document memory ownership rules
@@ -197,6 +253,7 @@ Based on Phase 7.6 discoveries, we must check for:
   - Document all size limits
   - Include error handling patterns
   - Add examples of correct and incorrect code
+  - Documentation includes working code examples that can be compiled and tested
 - Assumptions:
   - All fixes are complete and patterns are established
 - Dependencies:
