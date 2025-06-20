@@ -1744,7 +1744,10 @@ openpgp_result_t openpgp_decrypt(const char *message,
 
     /* Build DecryptRequest */
     flatcc_builder_t builder;
-    flatcc_builder_init(&builder);
+    openpgp_result_t init_result = init_flatcc_builder_safe(&builder);
+    if (init_result.error != OPENPGP_SUCCESS) {
+        return init_result;
+    }
     
     /* Create the request manually */
     model_DecryptRequest_start_as_root(&builder);
@@ -1957,7 +1960,10 @@ openpgp_result_t openpgp_sign(const char *message,
 
     /* Build SignRequest */
     flatcc_builder_t builder;
-    flatcc_builder_init(&builder);
+    openpgp_result_t init_result = init_flatcc_builder_safe(&builder);
+    if (init_result.error != OPENPGP_SUCCESS) {
+        return init_result;
+    }
     
     /* Create the request manually */
     model_SignRequest_start_as_root(&builder);
@@ -2072,7 +2078,10 @@ openpgp_result_t openpgp_sign_data(const char *message,
 
     /* Build SignDataRequest */
     flatcc_builder_t builder;
-    flatcc_builder_init(&builder);
+    openpgp_result_t init_result = init_flatcc_builder_safe(&builder);
+    if (init_result.error != OPENPGP_SUCCESS) {
+        return init_result;
+    }
     
     /* Create the request manually */
     model_SignDataRequest_start_as_root(&builder);
@@ -2183,7 +2192,10 @@ openpgp_result_t openpgp_sign_file(const char *input_file,
 
     /* Build SignFileRequest */
     flatcc_builder_t builder;
-    flatcc_builder_init(&builder);
+    openpgp_result_t init_result = init_flatcc_builder_safe(&builder);
+    if (init_result.error != OPENPGP_SUCCESS) {
+        return init_result;
+    }
     
     /* Create the request manually */
     model_SignFileRequest_start_as_root(&builder);
@@ -2298,7 +2310,10 @@ openpgp_result_t openpgp_sign_bytes(const uint8_t *data, size_t data_len,
 
     /* Build SignBytesRequest */
     flatcc_builder_t builder;
-    flatcc_builder_init(&builder);
+    openpgp_result_t init_result = init_flatcc_builder_safe(&builder);
+    if (init_result.error != OPENPGP_SUCCESS) {
+        return init_result;
+    }
     
     /* Create the request manually */
     model_SignBytesRequest_start_as_root(&builder);
@@ -2409,7 +2424,10 @@ openpgp_result_t openpgp_sign_data_bytes(const uint8_t *data, size_t data_len,
 
     /* Build SignDataBytesRequest */
     flatcc_builder_t builder;
-    flatcc_builder_init(&builder);
+    openpgp_result_t init_result = init_flatcc_builder_safe(&builder);
+    if (init_result.error != OPENPGP_SUCCESS) {
+        return init_result;
+    }
     
     /* Create the request manually */
     model_SignDataBytesRequest_start_as_root(&builder);
