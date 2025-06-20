@@ -101,7 +101,6 @@ TEST_CASE(isolation_test_counters) {
     
     /* Record current counts */
     int before_tests_run = g_tests_run;
-    int before_major_tests_run = g_major_tests_run;
     
     /* Perform some operations that shouldn't affect test counts */
     openpgp_result_t result = openpgp_init();
