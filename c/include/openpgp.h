@@ -38,7 +38,7 @@ typedef enum {
     OPENPGP_ERROR_SERIALIZATION = 8,
     OPENPGP_ERROR_BRIDGE_CALL = 9,
     OPENPGP_ERROR_LIBRARY_NOT_INITIALIZED = 10,
-    OPENPGP_ERROR_SIZE_LIMIT = 11,
+    OPENPGP_ERROR_SIZE_LIMIT = 11,    /* Data exceeds processing limits */
     OPENPGP_ERROR_UNKNOWN = 99
 } openpgp_error_t;
 
@@ -94,6 +94,21 @@ typedef struct {
     void *data;                     /* Operation-specific result data */
     size_t data_size;               /* Size of result data in bytes */
 } openpgp_result_t;
+
+/*
+ * Size Limitations
+ * 
+ * The library enforces the following size limits based on empirical 
+ * testing with FlatCC serialization (Phase 7.6 findings):
+ * 
+ * - Message content (encryption/decryption): 2KB maximum
+ * - Signature data: 3KB maximum  
+ * - Key generation comments: 512 bytes maximum
+ * - FlatBuffer serialization: 4KB maximum
+ * 
+ * Operations exceeding these limits will return OPENPGP_ERROR_SIZE_LIMIT
+ * with a descriptive error message indicating the specific limit exceeded.
+ */
 
 /* Key options */
 typedef struct {
