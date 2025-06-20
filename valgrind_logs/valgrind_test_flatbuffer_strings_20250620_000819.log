@@ -1,0 +1,44 @@
+Command: valgrind --leak-check=full --show-leak-kinds=all --track-origins=yes --error-exitcode=1 --suppressions=/home/vng/dev/openpgp-mobile/c/test/valgrind.supp c/build/test_flatbuffer_strings
+Timestamp: Fri Jun 20 12:08:19 AM EDT 2025
+========================
+==1380513== Memcheck, a memory error detector
+==1380513== Copyright (C) 2002-2022, and GNU GPL'd, by Julian Seward et al.
+==1380513== Using Valgrind-3.22.0 and LibVEX; rerun with -h for copyright info
+==1380513== Command: c/build/test_flatbuffer_strings
+==1380513== 
+=== FlatBuffer String Handling Test Suite ===
+Testing Task #4: FlatBuffer string serialization edge cases
+
+Running test_flatbuffer_string_null_handling... ✅ NULL string: String handling test passed
+[32mPASS[0m (2 subtests)
+Running test_flatbuffer_string_empty_handling... ✅ Empty string: String handling test passed
+[32mPASS[0m (2 subtests)
+Running test_flatbuffer_string_normal_handling... ✅ Normal string: String handling test passed
+[32mPASS[0m (2 subtests)
+Running test_flatbuffer_string_long_handling... ✅ Long string (500 chars): String handling test passed
+[32mPASS[0m (2 subtests)
+Running test_flatbuffer_string_special_chars... ✅ Special characters: String handling test passed
+[32mPASS[0m (2 subtests)
+Running test_flatbuffer_string_boundary_sizes... ✅ Boundary test 1 chars: String handling test passed
+✅ Boundary test 10 chars: String handling test passed
+✅ Boundary test 50 chars: String handling test passed
+✅ Boundary test 100 chars: String handling test passed
+✅ Boundary test 200 chars: String handling test passed
+✅ Boundary test 400 chars: String handling test passed
+✅ Boundary test 800 chars: String handling test passed
+[32mPASS[0m (15 subtests)
+Running test_flatbuffer_multiple_strings... [32mPASS[0m (17 subtests)
+
+=== Test Suite Complete ===
+Tests run: 7/7 major tests passed
+Assertions: 42/42 subtests passed
+[32mALL TESTS PASSED![0m
+==1380513== 
+==1380513== HEAP SUMMARY:
+==1380513==     in use at exit: 0 bytes in 0 blocks
+==1380513==   total heap usage: 114 allocs, 114 frees, 56,440 bytes allocated
+==1380513== 
+==1380513== All heap blocks were freed -- no leaks are possible
+==1380513== 
+==1380513== For lists of detected and suppressed errors, rerun with: -s
+==1380513== ERROR SUMMARY: 0 errors from 0 contexts (suppressed: 0 from 0)

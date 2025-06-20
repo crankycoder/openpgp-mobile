@@ -1,0 +1,42 @@
+Command: valgrind --leak-check=full --show-leak-kinds=all --track-origins=yes --error-exitcode=1 --suppressions=/home/vng/dev/openpgp-mobile/c/test/valgrind.supp c/build/test_nested_structures
+Timestamp: Fri Jun 20 12:08:25 AM EDT 2025
+========================
+==1380577== Memcheck, a memory error detector
+==1380577== Copyright (C) 2002-2022, and GNU GPL'd, by Julian Seward et al.
+==1380577== Using Valgrind-3.22.0 and LibVEX; rerun with -h for copyright info
+==1380577== Command: c/build/test_nested_structures
+==1380577== 
+=== Nested FlatBuffer Structures Test Suite ===
+Testing Task #5: Complex nested structures (Options + KeyOptions)
+
+Running test_nested_structure_minimal... ✅ Minimal nested structure: Nested structure test passed (buffer size: 132)
+[32mPASS[0m (2 subtests)
+Running test_nested_structure_complete... ✅ Complete nested structure: Nested structure test passed (buffer size: 188)
+[32mPASS[0m (2 subtests)
+Running test_nested_structure_optional_fields... ✅ Optional fields nested structure: Nested structure test passed (buffer size: 152)
+[32mPASS[0m (2 subtests)
+Running test_nested_structure_multiple_create... ✅ Multiple nested structures: Nested structure test passed (buffer size: 172)
+✅ Multiple nested structures: Nested structure test passed (buffer size: 176)
+✅ Multiple nested structures: Nested structure test passed (buffer size: 176)
+✅ Multiple nested structures: Nested structure test passed (buffer size: 176)
+✅ Multiple nested structures: Nested structure test passed (buffer size: 172)
+[32mPASS[0m (6 subtests)
+Running test_nested_structure_edge_values... ✅ Edge values nested structure: Nested structure test passed (buffer size: 116)
+[32mPASS[0m (2 subtests)
+Running test_nested_structure_large_strings... ✅ Large strings nested structure: Nested structure test passed (buffer size: 1132)
+[32mPASS[0m (2 subtests)
+Running test_nested_structure_builder_state... [32mPASS[0m (9 subtests)
+
+=== Test Suite Complete ===
+Tests run: 7/7 major tests passed
+Assertions: 25/25 subtests passed
+[32mALL TESTS PASSED![0m
+==1380577== 
+==1380577== HEAP SUMMARY:
+==1380577==     in use at exit: 0 bytes in 0 blocks
+==1380577==   total heap usage: 117 allocs, 117 frees, 52,128 bytes allocated
+==1380577== 
+==1380577== All heap blocks were freed -- no leaks are possible
+==1380577== 
+==1380577== For lists of detected and suppressed errors, rerun with: -s
+==1380577== ERROR SUMMARY: 0 errors from 0 contexts (suppressed: 0 from 0)
