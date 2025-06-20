@@ -183,4 +183,7 @@ valgrind-summary:
 	@echo "Showing latest valgrind summary..."
 	cd test && ./valgrind_all_tests.sh --show-logs
 
+# Include specialized makefiles
+include test/memory.mk
+
 .PHONY: all directories test clean distclean install generate test-memory test-memory-valgrind test-debug test-minimal test-all-debug valgrind valgrind-single valgrind-clean valgrind-summary
