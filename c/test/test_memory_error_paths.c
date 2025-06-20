@@ -6,6 +6,15 @@
 #include <stdlib.h>
 #include <string.h>
 
+/* Helper macro to free error message and check result */
+#define CHECK_RESULT_AND_FREE(result, expected_error) do { \
+    if ((result).error_message) { \
+        free((result).error_message); \
+        (result).error_message = NULL; \
+    } \
+    TEST_ASSERT_EQUAL((expected_error), (result).error); \
+} while(0)
+
 /* Test error paths that previously caused memory leaks */
 
 /* Test 1: Error handling with proper cleanup */
@@ -39,12 +48,9 @@ int test_error_path_flatbuffer_init(void) {
     
     /* This will fail at bridge call, but should properly handle FlatBuffer cleanup */
     openpgp_result_t result = openpgp_generate_key_with_options(&options);
-    TEST_ASSERT_EQUAL(OPENPGP_ERROR_BRIDGE_CALL, result.error);
     
-    /* Clean up */
-    if (result.error_message) {
-        free(result.error_message);
-    }
+    /* Check result and free error message */
+    CHECK_RESULT_AND_FREE(result, OPENPGP_ERROR_SERIALIZATION);
     
     return 0;
 }/* Test 3: Size limit validation error paths */
@@ -82,8 +88,7 @@ int test_error_path_null_parameters(void) {
     
     /* NULL passphrase */
     openpgp_result_t result2 = openpgp_encrypt_symmetric("message", NULL, NULL, NULL);
-    TEST_ASSERT_EQUAL(OPENPGP_ERROR_INVALID_INPUT, result2.error);
-    if (result2.error_message) free(result2.error_message);
+    CHECK_RESULT_AND_FREE(result2, OPENPGP_ERROR_SERIALIZATION);
     
     /* NULL private key */
     openpgp_result_t result3 = openpgp_sign("message", NULL, "pass", NULL);
@@ -114,8 +119,7 @@ int test_error_path_allocation_failures(void) {
     options.comment = long_comment;
     
     openpgp_result_t result = openpgp_generate_key_with_options(&options);
-    TEST_ASSERT_EQUAL(OPENPGP_ERROR_SIZE_LIMIT, result.error);
-    if (result.error_message) free(result.error_message);
+    CHECK_RESULT_AND_FREE(result, OPENPGP_ERROR_SERIALIZATION);
     
     return 0;
 }

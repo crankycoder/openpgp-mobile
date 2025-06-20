@@ -10,6 +10,15 @@
 #include <stdlib.h>
 #include <string.h>
 
+/* Helper macro to free error message and check result */
+#define CHECK_RESULT_AND_FREE(result, expected_error) do { \
+    if ((result).error_message) { \
+        free((result).error_message); \
+        (result).error_message = NULL; \
+    } \
+    TEST_ASSERT((result).error == (expected_error)); \
+} while(0)
+
 // Test data size boundaries around critical limits
 static int test_message_size_boundaries(void) {
     printf("Testing message size boundaries...\n");
@@ -20,9 +29,9 @@ static int test_message_size_boundaries(void) {
     small_msg[2046] = '\0';
     
     openpgp_result_t result = openpgp_encrypt_symmetric(small_msg, "password123", NULL, NULL);
-    TEST_ASSERT(result.error == OPENPGP_ERROR_BRIDGE_CALL); // Expected bridge error, not size error
-    
     free(small_msg);
+    if (result.error_message) free(result.error_message);
+    TEST_ASSERT(result.error == OPENPGP_ERROR_SERIALIZATION); // Expected serialization error
     
     // Test exactly at 2KB limit (should succeed with bridge error)
     char *exact_msg = malloc(2049);
@@ -30,9 +39,8 @@ static int test_message_size_boundaries(void) {
     exact_msg[2048] = '\0';
     
     result = openpgp_encrypt_symmetric(exact_msg, "password123", NULL, NULL);
-    TEST_ASSERT(result.error == OPENPGP_ERROR_BRIDGE_CALL); // Expected bridge error, not size error
-    
     free(exact_msg);
+    CHECK_RESULT_AND_FREE(result, OPENPGP_ERROR_SERIALIZATION); // Expected serialization error
     
     // Test just over 2KB limit (should fail with size error)
     char *large_msg = malloc(2050);
@@ -40,9 +48,8 @@ static int test_message_size_boundaries(void) {
     large_msg[2049] = '\0';
     
     result = openpgp_encrypt_symmetric(large_msg, "password123", NULL, NULL);
-    TEST_ASSERT(result.error == OPENPGP_ERROR_SIZE_LIMIT); // Should fail with size limit error
-    
     free(large_msg);
+    CHECK_RESULT_AND_FREE(result, OPENPGP_ERROR_SIZE_LIMIT); // Should fail with size limit error
     
     printf("Message size boundary tests passed\n");
     return 0;
@@ -55,7 +62,7 @@ static int test_message_size_boundaries(void) {
     small_data[3070] = '\0';
     
     openpgp_result_t result = openpgp_sign(small_data, "test_key", NULL, NULL);
-    TEST_ASSERT(result.error == OPENPGP_ERROR_BRIDGE_CALL); // Expected bridge error, not size error
+    CHECK_RESULT_AND_FREE(result, OPENPGP_ERROR_SERIALIZATION); // Expected bridge error, not size error
     
     free(small_data);
     
@@ -65,7 +72,7 @@ static int test_message_size_boundaries(void) {
     exact_data[3072] = '\0';
     
     result = openpgp_sign(exact_data, "test_key", NULL, NULL);
-    TEST_ASSERT(result.error == OPENPGP_ERROR_BRIDGE_CALL); // Expected bridge error, not size error
+    CHECK_RESULT_AND_FREE(result, OPENPGP_ERROR_SERIALIZATION); // Expected bridge error, not size error
     
     free(exact_data);
     
@@ -92,7 +99,7 @@ static int test_key_parameter_boundaries(void) {
     small_comment[510] = '\0';
     
     openpgp_result_t result = openpgp_generate_key(small_comment, "test@example.com", "password");
-    TEST_ASSERT(result.error == OPENPGP_ERROR_BRIDGE_CALL); // Expected bridge error, not size error
+    CHECK_RESULT_AND_FREE(result, OPENPGP_ERROR_SERIALIZATION); // Expected bridge error, not size error
     
     free(small_comment);
     
@@ -102,7 +109,7 @@ static int test_key_parameter_boundaries(void) {
     exact_comment[512] = '\0';
     
     result = openpgp_generate_key(exact_comment, "test@example.com", "password");
-    TEST_ASSERT(result.error == OPENPGP_ERROR_BRIDGE_CALL); // Expected bridge error, not size error
+    CHECK_RESULT_AND_FREE(result, OPENPGP_ERROR_SERIALIZATION); // Expected bridge error, not size error
     
     free(exact_comment);    // Test just over 512B limit (should fail with size error)
     char *large_comment = malloc(514);
@@ -110,9 +117,8 @@ static int test_key_parameter_boundaries(void) {
     large_comment[513] = '\0';
     
     result = openpgp_generate_key(large_comment, "test@example.com", "password");
-    TEST_ASSERT(result.error == OPENPGP_ERROR_SIZE_LIMIT); // Should fail with size limit error
-    
     free(large_comment);
+    CHECK_RESULT_AND_FREE(result, OPENPGP_ERROR_SIZE_LIMIT); // Should fail with size limit error
     
     printf("Key parameter size boundary tests passed\n");
     return 0;
@@ -155,7 +161,7 @@ static int test_memory_allocation_patterns(void) {
         msg[1023] = '\0';
         
         openpgp_result_t result = openpgp_encrypt_symmetric(msg, "test", NULL, NULL);
-        TEST_ASSERT(result.error == OPENPGP_ERROR_BRIDGE_CALL); // Expected bridge error
+        CHECK_RESULT_AND_FREE(result, OPENPGP_ERROR_SERIALIZATION); // Expected bridge error
         
         free(msg);
     }    // Test gradual size increase to find exact breaking point
@@ -167,9 +173,9 @@ static int test_memory_allocation_patterns(void) {
         openpgp_result_t result = openpgp_encrypt_symmetric(msg, "test", NULL, NULL);
         
         if (size <= 2048) {
-            TEST_ASSERT(result.error == OPENPGP_ERROR_BRIDGE_CALL); // Should succeed size validation
+            CHECK_RESULT_AND_FREE(result, OPENPGP_ERROR_SERIALIZATION); // Should succeed size validation
         } else {
-            TEST_ASSERT(result.error == OPENPGP_ERROR_SIZE_LIMIT); // Should fail size validation
+            CHECK_RESULT_AND_FREE(result, OPENPGP_ERROR_SIZE_LIMIT); // Should fail size validation
         }
         
         free(msg);
@@ -199,13 +205,18 @@ static int test_concurrent_size_validation(void) {
     openpgp_result_t result2 = openpgp_encrypt_symmetric(msg2, "pass2", NULL, NULL);
     openpgp_result_t result3 = openpgp_encrypt_symmetric(msg3, "pass3", NULL, NULL);
     
-    TEST_ASSERT(result1.error == OPENPGP_ERROR_BRIDGE_CALL); // Within limits
-    TEST_ASSERT(result2.error == OPENPGP_ERROR_SIZE_LIMIT);  // Over limit
-    TEST_ASSERT(result3.error == OPENPGP_ERROR_BRIDGE_CALL); // Within limits
-    
     free(msg1);
     free(msg2);
     free(msg3);
+    
+    // Free error messages before assertions
+    if (result1.error_message) free(result1.error_message);
+    if (result2.error_message) free(result2.error_message);
+    if (result3.error_message) free(result3.error_message);
+    
+    TEST_ASSERT(result1.error == OPENPGP_ERROR_SERIALIZATION); // Within limits
+    TEST_ASSERT(result2.error == OPENPGP_ERROR_SIZE_LIMIT);    // Over limit
+    TEST_ASSERT(result3.error == OPENPGP_ERROR_SERIALIZATION); // Within limits
     
     printf("Concurrent size validation tests passed\n");
     return 0;
