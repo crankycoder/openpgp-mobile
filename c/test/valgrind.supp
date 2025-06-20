@@ -56,7 +56,9 @@
    fun:calloc
    fun:allocate_dtv
    fun:_dl_allocate_tls
-}# Suppress dl-related leaks during dynamic loading
+}
+
+# Suppress dl-related leaks during dynamic loading
 {
    dl_init_leaks
    Memcheck:Leak
