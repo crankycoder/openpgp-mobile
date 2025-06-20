@@ -15,6 +15,12 @@ typedef struct {
 
 typedef BytesReturn* (*OpenPGPBridgeCall_fn)(char* name, void* payload, int payloadSize);
 
+/* Size validation constants based on Phase 7.6 empirical findings */
+#define MAX_FLATBUFFER_SIZE (4 * 1024)     /* 4KB hard limit for FlatCC operations */
+#define MAX_MESSAGE_SIZE (2 * 1024)        /* 2KB recommended for message content */
+#define MAX_KEY_COMMENT_SIZE (512)         /* 512B limit for key comments */
+#define MAX_SIGNATURE_DATA_SIZE (3 * 1024) /* 3KB limit for data to be signed */
+
 /* Global state */
 static struct {
     bool initialized;
@@ -27,6 +33,7 @@ static openpgp_result_t create_error_result(openpgp_error_t error, const char *m
 static openpgp_result_t create_success_result(void *data, size_t data_size);
 static char *duplicate_string(const char *str);
 static bool validate_buffer_size(size_t size, const char *operation);
+static openpgp_result_t validate_size_strict(size_t size, size_t limit, const char *operation);
 static openpgp_result_t init_flatcc_builder_safe(flatcc_builder_t *builder);
 static openpgp_result_t serialize_generate_request(const openpgp_options_t *options, void **buffer, size_t *buffer_size);
 static openpgp_result_t parse_keypair_response(const void *response_data, size_t response_size);
@@ -120,6 +127,12 @@ openpgp_result_t openpgp_generate_key_with_options(const openpgp_options_t *opti
 
     if (!options) {
         return create_error_result(OPENPGP_ERROR_INVALID_INPUT, "Options cannot be NULL");
+    }
+    
+    /* Validate key generation parameters for size limits */
+    if (options->comment && strlen(options->comment) > MAX_KEY_COMMENT_SIZE) {
+        return create_error_result(OPENPGP_ERROR_SIZE_LIMIT, 
+                                 "Key comment exceeds maximum allowed size");
     }
 
     /* Serialize the request using FlatBuffers */
@@ -239,10 +252,8 @@ static char *duplicate_string(const char *str) {
     return dup;
 }
 
-/* Buffer size validation helper - based on Phase 7.6 findings of 4KB FlatCC limit */
+/* Buffer size validation helper - warns but allows operation */
 static bool validate_buffer_size(size_t size, const char *operation) {
-    const size_t MAX_FLATBUFFER_SIZE = 4 * 1024; /* 4KB empirical limit from Phase 7.6 */
-    
     if (size == 0) {
         return false; /* Invalid empty buffer */
     }
@@ -250,10 +261,28 @@ static bool validate_buffer_size(size_t size, const char *operation) {
     if (size > MAX_FLATBUFFER_SIZE) {
         /* Log warning but don't fail - some operations might work */
         fprintf(stderr, "Warning: %s buffer size %zu exceeds recommended limit of %zu bytes\n", 
-                operation ? operation : "Buffer", size, MAX_FLATBUFFER_SIZE);
+                operation ? operation : "Buffer", size, (size_t)MAX_FLATBUFFER_SIZE);
     }
     
     return true; /* Allow operation to proceed with warning */
+}
+
+/* Strict size validation that prevents operations exceeding limits */
+static openpgp_result_t validate_size_strict(size_t size, size_t limit, const char *operation) {
+    if (size == 0) {
+        return create_error_result(OPENPGP_ERROR_INVALID_INPUT, 
+                                 "Empty data not allowed");
+    }
+    
+    if (size > limit) {
+        char error_msg[256];
+        snprintf(error_msg, sizeof(error_msg), 
+                "%s size %zu exceeds limit of %zu bytes", 
+                operation ? operation : "Data", size, limit);
+        return create_error_result(OPENPGP_ERROR_SIZE_LIMIT, error_msg);
+    }
+    
+    return create_success_result(NULL, 0);
 }
 
 /* Safe FlatBuffer builder initialization with error checking */
@@ -344,7 +373,14 @@ static openpgp_result_t serialize_generate_request(const openpgp_options_t *opti
     /* Get buffer size and data */
     *buffer_size = flatcc_builder_get_buffer_size(B);
     
-    /* Validate buffer size */
+    /* Validate buffer size with strict enforcement */
+    openpgp_result_t size_check = validate_size_strict(*buffer_size, MAX_FLATBUFFER_SIZE, "FlatBuffer");
+    if (size_check.error != OPENPGP_SUCCESS) {
+        flatcc_builder_clear(B);
+        return size_check;
+    }
+    
+    /* Legacy warning-only validation for additional context */
     if (!validate_buffer_size(*buffer_size, "FlatBuffer serialization")) {
         flatcc_builder_clear(B);
         return create_error_result(OPENPGP_ERROR_SERIALIZATION, "Invalid buffer size");
@@ -903,14 +939,22 @@ static model_FileHints_ref_t build_file_hints(flatcc_builder_t *B, const openpgp
 openpgp_result_t openpgp_encrypt_symmetric(const char *message, const char *passphrase, 
                                           const openpgp_file_hints_t *file_hints,
                                           const openpgp_key_options_t *options) {
-    if (!g_openpgp.initialized) {
-        return create_error_result(OPENPGP_ERROR_LIBRARY_NOT_INITIALIZED,
-                                 "Library not initialized");
-    }
-    
+    /* Input validation first - before library initialization check */
     if (!message || strlen(message) == 0) {
         return create_error_result(OPENPGP_ERROR_INVALID_INPUT,
                                  "Message is required");
+    }
+    
+    /* Validate message size before processing */
+    size_t message_len = strlen(message);
+    openpgp_result_t size_check = validate_size_strict(message_len, MAX_MESSAGE_SIZE, "Message");
+    if (size_check.error != OPENPGP_SUCCESS) {
+        return size_check;
+    }
+    
+    if (!g_openpgp.initialized) {
+        return create_error_result(OPENPGP_ERROR_LIBRARY_NOT_INITIALIZED,
+                                 "Library not initialized");
     }
     
     if (!passphrase || strlen(passphrase) == 0) {
@@ -1354,14 +1398,21 @@ openpgp_result_t openpgp_encrypt_symmetric_bytes(const uint8_t *data, size_t dat
                                                 const char *passphrase,
                                                 const openpgp_file_hints_t *file_hints,
                                                 const openpgp_key_options_t *options) {
-    if (!g_openpgp.initialized) {
-        return create_error_result(OPENPGP_ERROR_LIBRARY_NOT_INITIALIZED,
-                                 "Library not initialized");
-    }
-    
+    /* Input validation first - before library initialization check */
     if (!data || data_len == 0) {
         return create_error_result(OPENPGP_ERROR_INVALID_INPUT,
                                  "Data is required");
+    }
+    
+    /* Validate data size before processing */
+    openpgp_result_t size_check = validate_size_strict(data_len, MAX_MESSAGE_SIZE, "Data");
+    if (size_check.error != OPENPGP_SUCCESS) {
+        return size_check;
+    }
+    
+    if (!g_openpgp.initialized) {
+        return create_error_result(OPENPGP_ERROR_LIBRARY_NOT_INITIALIZED,
+                                 "Library not initialized");
     }
     
     if (!passphrase || strlen(passphrase) == 0) {
@@ -1950,6 +2001,13 @@ openpgp_result_t openpgp_sign(const char *message,
     if (!message) {
         return create_error_result(OPENPGP_ERROR_INVALID_INPUT, "Message cannot be null");
     }
+    
+    /* Validate message size before processing */
+    size_t message_len = strlen(message);
+    openpgp_result_t size_check = validate_size_strict(message_len, MAX_SIGNATURE_DATA_SIZE, "Message");
+    if (size_check.error != OPENPGP_SUCCESS) {
+        return size_check;
+    }
     if (!private_key) {
         return create_error_result(OPENPGP_ERROR_INVALID_INPUT, "Private key cannot be null");
     }
@@ -2299,6 +2357,12 @@ openpgp_result_t openpgp_sign_bytes(const uint8_t *data, size_t data_len,
     /* Input validation */
     if (!data || data_len == 0) {
         return create_error_result(OPENPGP_ERROR_INVALID_INPUT, "Data cannot be null and length must be > 0");
+    }
+    
+    /* Validate data size before processing */
+    openpgp_result_t size_check = validate_size_strict(data_len, MAX_SIGNATURE_DATA_SIZE, "Data");
+    if (size_check.error != OPENPGP_SUCCESS) {
+        return size_check;
     }
     if (!private_key) {
         return create_error_result(OPENPGP_ERROR_INVALID_INPUT, "Private key cannot be null");
