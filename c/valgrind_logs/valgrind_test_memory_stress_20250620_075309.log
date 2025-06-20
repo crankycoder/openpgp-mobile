@@ -1,0 +1,144 @@
+Command: valgrind --leak-check=full --show-leak-kinds=all --track-origins=yes --error-exitcode=1 --suppressions=/home/vng/dev/openpgp-mobile/c/test/valgrind.supp build/test_memory_stress
+Timestamp: Fri Jun 20 07:53:09 AM EDT 2025
+========================
+==1537050== Memcheck, a memory error detector
+==1537050== Copyright (C) 2002-2022, and GNU GPL'd, by Julian Seward et al.
+==1537050== Using Valgrind-3.22.0 and LibVEX; rerun with -h for copyright info
+==1537050== Command: build/test_memory_stress
+==1537050== 
+
+=== Memory Regression Test Suite - Stress Testing ===
+Testing repeated operations for memory stability
+
+Running Repeated Encryption in isolation... Testing repeated encryption operations (100 iterations)...
+[31mFAIL[0m test/test_memory_stress.c:26: Assertion failed: result.error == OPENPGP_ERROR_BRIDGE_CALL
+FAIL
+Running Repeated Signing in isolation... Testing repeated signing operations (100 iterations)...
+[31mFAIL[0m test/test_memory_stress.c:44: Assertion failed: result.error == OPENPGP_ERROR_BRIDGE_CALL
+FAIL
+Running Repeated Key Generation in isolation... Testing repeated key generation (100 iterations)...
+[31mFAIL[0m test/test_memory_stress.c:63: Assertion failed: result.error == OPENPGP_ERROR_BRIDGE_CALL
+FAIL
+Running Rapid Sequential Operations in isolation... Testing rapid sequential operations (1000 iterations)...
+[31mFAIL[0m test/test_memory_stress.c:84: Assertion failed: result.error == OPENPGP_ERROR_BRIDGE_CALL
+FAIL
+Running Mixed Operation Patterns in isolation... Testing mixed operation patterns...
+[31mFAIL[0m test/test_memory_stress.c:105: Assertion failed: result1.error == OPENPGP_ERROR_BRIDGE_CALL
+FAIL
+Running Size Validation Under Stress in isolation... Testing size validation under stress conditions...
+[31mFAIL[0m test/test_memory_stress.c:132: Assertion failed: result.error == OPENPGP_ERROR_BRIDGE_CALL
+FAIL
+Running Large Batch Operations in isolation... Testing large batch operations (50 batches)...
+[31mFAIL[0m test/test_memory_stress.c:168: Assertion failed: result.error == OPENPGP_ERROR_BRIDGE_CALL
+FAIL
+
+=== Stress Testing Summary ===
+Tests run: 0, Tests failed: 0
+[31mFAILED: 7 test(s) failed
+[0m==1537050== 
+==1537050== HEAP SUMMARY:
+==1537050==     in use at exit: 29,220 bytes in 110 blocks
+==1537050==   total heap usage: 118 allocs, 8 frees, 33,428 bytes allocated
+==1537050== 
+==1537050== 24 bytes in 1 blocks are definitely lost in loss record 1 of 12
+==1537050==    at 0x4846828: malloc (in /usr/libexec/valgrind/vgpreload_memcheck-amd64-linux.so)
+==1537050==    by 0x121BE1: duplicate_string (openpgp.c:248)
+==1537050==    by 0x121AFE: create_error_result (openpgp.c:229)
+==1537050==    by 0x124109: openpgp_encrypt_symmetric (openpgp.c:956)
+==1537050==    by 0x10934D: test_repeated_encryption_operations (test_memory_stress.c:25)
+==1537050==    by 0x10A113: run_isolated_test (test_isolation_manager.c:68)
+==1537050==    by 0x109F34: main (test_memory_stress.c:189)
+==1537050== 
+==1537050== 24 bytes in 1 blocks are definitely lost in loss record 2 of 12
+==1537050==    at 0x4846828: malloc (in /usr/libexec/valgrind/vgpreload_memcheck-amd64-linux.so)
+==1537050==    by 0x121BE1: duplicate_string (openpgp.c:248)
+==1537050==    by 0x121AFE: create_error_result (openpgp.c:229)
+==1537050==    by 0x1274FA: openpgp_sign (openpgp.c:2015)
+==1537050==    by 0x10948A: test_repeated_signing_operations (test_memory_stress.c:43)
+==1537050==    by 0x10A113: run_isolated_test (test_isolation_manager.c:68)
+==1537050==    by 0x109F50: main (test_memory_stress.c:190)
+==1537050== 
+==1537050== 24 bytes in 1 blocks are definitely lost in loss record 3 of 12
+==1537050==    at 0x4846828: malloc (in /usr/libexec/valgrind/vgpreload_memcheck-amd64-linux.so)
+==1537050==    by 0x121BE1: duplicate_string (openpgp.c:248)
+==1537050==    by 0x121AFE: create_error_result (openpgp.c:229)
+==1537050==    by 0x124109: openpgp_encrypt_symmetric (openpgp.c:956)
+==1537050==    by 0x109718: test_rapid_sequential_operations (test_memory_stress.c:83)
+==1537050==    by 0x10A113: run_isolated_test (test_isolation_manager.c:68)
+==1537050==    by 0x109F88: main (test_memory_stress.c:192)
+==1537050== 
+==1537050== 24 bytes in 1 blocks are definitely lost in loss record 4 of 12
+==1537050==    at 0x4846828: malloc (in /usr/libexec/valgrind/vgpreload_memcheck-amd64-linux.so)
+==1537050==    by 0x121BE1: duplicate_string (openpgp.c:248)
+==1537050==    by 0x121AFE: create_error_result (openpgp.c:229)
+==1537050==    by 0x124109: openpgp_encrypt_symmetric (openpgp.c:956)
+==1537050==    by 0x109958: test_mixed_operation_patterns (test_memory_stress.c:104)
+==1537050==    by 0x10A113: run_isolated_test (test_isolation_manager.c:68)
+==1537050==    by 0x109FA4: main (test_memory_stress.c:193)
+==1537050== 
+==1537050== 24 bytes in 1 blocks are definitely lost in loss record 5 of 12
+==1537050==    at 0x4846828: malloc (in /usr/libexec/valgrind/vgpreload_memcheck-amd64-linux.so)
+==1537050==    by 0x121BE1: duplicate_string (openpgp.c:248)
+==1537050==    by 0x121AFE: create_error_result (openpgp.c:229)
+==1537050==    by 0x124109: openpgp_encrypt_symmetric (openpgp.c:956)
+==1537050==    by 0x109B5A: test_size_validation_under_stress (test_memory_stress.c:131)
+==1537050==    by 0x10A113: run_isolated_test (test_isolation_manager.c:68)
+==1537050==    by 0x109FC0: main (test_memory_stress.c:194)
+==1537050== 
+==1537050== 24 bytes in 1 blocks are definitely lost in loss record 6 of 12
+==1537050==    at 0x4846828: malloc (in /usr/libexec/valgrind/vgpreload_memcheck-amd64-linux.so)
+==1537050==    by 0x121BE1: duplicate_string (openpgp.c:248)
+==1537050==    by 0x121AFE: create_error_result (openpgp.c:229)
+==1537050==    by 0x124109: openpgp_encrypt_symmetric (openpgp.c:956)
+==1537050==    by 0x109DFB: test_large_batch_operations (test_memory_stress.c:167)
+==1537050==    by 0x10A113: run_isolated_test (test_isolation_manager.c:68)
+==1537050==    by 0x109FDC: main (test_memory_stress.c:195)
+==1537050== 
+==1537050== 52 bytes in 1 blocks are definitely lost in loss record 7 of 12
+==1537050==    at 0x4846828: malloc (in /usr/libexec/valgrind/vgpreload_memcheck-amd64-linux.so)
+==1537050==    by 0x121BE1: duplicate_string (openpgp.c:248)
+==1537050==    by 0x121AFE: create_error_result (openpgp.c:229)
+==1537050==    by 0x121654: openpgp_generate_key (openpgp.c:109)
+==1537050==    by 0x1095D5: test_repeated_key_generation (test_memory_stress.c:62)
+==1537050==    by 0x10A113: run_isolated_test (test_isolation_manager.c:68)
+==1537050==    by 0x109F6C: main (test_memory_stress.c:191)
+==1537050== 
+==1537050== 1,024 bytes in 1 blocks are definitely lost in loss record 8 of 12
+==1537050==    at 0x4846828: malloc (in /usr/libexec/valgrind/vgpreload_memcheck-amd64-linux.so)
+==1537050==    by 0x109B11: test_size_validation_under_stress (test_memory_stress.c:127)
+==1537050==    by 0x10A113: run_isolated_test (test_isolation_manager.c:68)
+==1537050==    by 0x109FC0: main (test_memory_stress.c:194)
+==1537050== 
+==1537050== 1,600 bytes in 50 blocks are indirectly lost in loss record 9 of 12
+==1537050==    at 0x4846828: malloc (in /usr/libexec/valgrind/vgpreload_memcheck-amd64-linux.so)
+==1537050==    by 0x109D2F: test_large_batch_operations (test_memory_stress.c:160)
+==1537050==    by 0x10A113: run_isolated_test (test_isolation_manager.c:68)
+==1537050==    by 0x109FDC: main (test_memory_stress.c:195)
+==1537050== 
+==1537050== 2,000 (400 direct, 1,600 indirect) bytes in 1 blocks are definitely lost in loss record 10 of 12
+==1537050==    at 0x4846828: malloc (in /usr/libexec/valgrind/vgpreload_memcheck-amd64-linux.so)
+==1537050==    by 0x109CDE: test_large_batch_operations (test_memory_stress.c:155)
+==1537050==    by 0x10A113: run_isolated_test (test_isolation_manager.c:68)
+==1537050==    by 0x109FDC: main (test_memory_stress.c:195)
+==1537050== 
+==1537050== 25,600 bytes in 50 blocks are indirectly lost in loss record 11 of 12
+==1537050==    at 0x4846828: malloc (in /usr/libexec/valgrind/vgpreload_memcheck-amd64-linux.so)
+==1537050==    by 0x109D0D: test_large_batch_operations (test_memory_stress.c:159)
+==1537050==    by 0x10A113: run_isolated_test (test_isolation_manager.c:68)
+==1537050==    by 0x109FDC: main (test_memory_stress.c:195)
+==1537050== 
+==1537050== 26,000 (400 direct, 25,600 indirect) bytes in 1 blocks are definitely lost in loss record 12 of 12
+==1537050==    at 0x4846828: malloc (in /usr/libexec/valgrind/vgpreload_memcheck-amd64-linux.so)
+==1537050==    by 0x109CD0: test_large_batch_operations (test_memory_stress.c:154)
+==1537050==    by 0x10A113: run_isolated_test (test_isolation_manager.c:68)
+==1537050==    by 0x109FDC: main (test_memory_stress.c:195)
+==1537050== 
+==1537050== LEAK SUMMARY:
+==1537050==    definitely lost: 2,020 bytes in 10 blocks
+==1537050==    indirectly lost: 27,200 bytes in 100 blocks
+==1537050==      possibly lost: 0 bytes in 0 blocks
+==1537050==    still reachable: 0 bytes in 0 blocks
+==1537050==         suppressed: 0 bytes in 0 blocks
+==1537050== 
+==1537050== For lists of detected and suppressed errors, rerun with: -s
+==1537050== ERROR SUMMARY: 10 errors from 10 contexts (suppressed: 0 from 0)
