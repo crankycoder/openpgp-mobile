@@ -27,6 +27,7 @@ static openpgp_result_t create_error_result(openpgp_error_t error, const char *m
 static openpgp_result_t create_success_result(void *data, size_t data_size);
 static char *duplicate_string(const char *str);
 static bool validate_buffer_size(size_t size, const char *operation);
+static openpgp_result_t init_flatcc_builder_safe(flatcc_builder_t *builder);
 static openpgp_result_t serialize_generate_request(const openpgp_options_t *options, void **buffer, size_t *buffer_size);
 static openpgp_result_t parse_keypair_response(const void *response_data, size_t response_size);
 
@@ -255,6 +256,24 @@ static bool validate_buffer_size(size_t size, const char *operation) {
     return true; /* Allow operation to proceed with warning */
 }
 
+/* Safe FlatBuffer builder initialization with error checking */
+static openpgp_result_t init_flatcc_builder_safe(flatcc_builder_t *builder) {
+    if (!builder) {
+        return create_error_result(OPENPGP_ERROR_INVALID_INPUT, "Builder pointer is NULL");
+    }
+    
+    /* Initialize builder to known state */
+    memset(builder, 0, sizeof(flatcc_builder_t));
+    
+    /* Initialize and check for errors */
+    if (flatcc_builder_init(builder)) {
+        return create_error_result(OPENPGP_ERROR_MEMORY_ALLOCATION, 
+                                 "Failed to initialize FlatBuffer builder");
+    }
+    
+    return create_success_result(NULL, 0);
+}
+
 /* Internal helper to serialize generate request using FlatBuffers */
 static openpgp_result_t serialize_generate_request(const openpgp_options_t *options, void **buffer, size_t *buffer_size) {
     /* Create FlatBuffer builder */
@@ -419,7 +438,10 @@ openpgp_result_t openpgp_convert_private_to_public(const char *private_key) {
     
     /* Build ConvertPrivateKeyToPublicKeyRequest */
     flatcc_builder_t builder;
-    flatcc_builder_init(&builder);
+    if (flatcc_builder_init(&builder)) {
+        return create_error_result(OPENPGP_ERROR_MEMORY_ALLOCATION, 
+                                 "Failed to initialize FlatBuffer builder");
+    }
     
     /* Create the request manually using start/add/end pattern */
     model_ConvertPrivateKeyToPublicKeyRequest_start_as_root(&builder);
@@ -520,7 +542,10 @@ openpgp_result_t openpgp_get_public_key_metadata(const char *public_key) {
     
     /* Build GetPublicKeyMetadataRequest */
     flatcc_builder_t builder;
-    flatcc_builder_init(&builder);
+    if (flatcc_builder_init(&builder)) {
+        return create_error_result(OPENPGP_ERROR_MEMORY_ALLOCATION, 
+                                 "Failed to initialize FlatBuffer builder");
+    }
     
     /* Create the request manually */
     model_GetPublicKeyMetadataRequest_start_as_root(&builder);
@@ -650,7 +675,10 @@ openpgp_result_t openpgp_get_private_key_metadata(const char *private_key) {
     
     /* Build GetPrivateKeyMetadataRequest */
     flatcc_builder_t builder;
-    flatcc_builder_init(&builder);
+    openpgp_result_t init_result = init_flatcc_builder_safe(&builder);
+    if (init_result.error != OPENPGP_SUCCESS) {
+        return init_result;
+    }
     
     /* Create the request manually */
     model_GetPrivateKeyMetadataRequest_start_as_root(&builder);
@@ -892,7 +920,10 @@ openpgp_result_t openpgp_encrypt_symmetric(const char *message, const char *pass
     
     /* Build EncryptSymmetricRequest */
     flatcc_builder_t builder;
-    flatcc_builder_init(&builder);
+    openpgp_result_t init_result = init_flatcc_builder_safe(&builder);
+    if (init_result.error != OPENPGP_SUCCESS) {
+        return init_result;
+    }
     
     /* Create the request manually */
     model_EncryptSymmetricRequest_start_as_root(&builder);
@@ -1009,7 +1040,10 @@ openpgp_result_t openpgp_decrypt_symmetric(const char *message, const char *pass
     
     /* Build DecryptSymmetricRequest */
     flatcc_builder_t builder;
-    flatcc_builder_init(&builder);
+    openpgp_result_t init_result = init_flatcc_builder_safe(&builder);
+    if (init_result.error != OPENPGP_SUCCESS) {
+        return init_result;
+    }
     
     /* Create the request manually */
     model_DecryptSymmetricRequest_start_as_root(&builder);
@@ -1127,7 +1161,10 @@ openpgp_result_t openpgp_encrypt_symmetric_file(const char *input_file, const ch
     
     /* Build EncryptSymmetricFileRequest */
     flatcc_builder_t builder;
-    flatcc_builder_init(&builder);
+    openpgp_result_t init_result = init_flatcc_builder_safe(&builder);
+    if (init_result.error != OPENPGP_SUCCESS) {
+        return init_result;
+    }
     
     /* Create the request manually */
     model_EncryptSymmetricFileRequest_start_as_root(&builder);
@@ -1234,7 +1271,10 @@ openpgp_result_t openpgp_decrypt_symmetric_file(const char *input_file, const ch
     
     /* Build DecryptSymmetricFileRequest */
     flatcc_builder_t builder;
-    flatcc_builder_init(&builder);
+    openpgp_result_t init_result = init_flatcc_builder_safe(&builder);
+    if (init_result.error != OPENPGP_SUCCESS) {
+        return init_result;
+    }
     
     /* Create the request manually */
     model_DecryptSymmetricFileRequest_start_as_root(&builder);
@@ -1331,7 +1371,10 @@ openpgp_result_t openpgp_encrypt_symmetric_bytes(const uint8_t *data, size_t dat
     
     /* Build EncryptSymmetricBytesRequest */
     flatcc_builder_t builder;
-    flatcc_builder_init(&builder);
+    openpgp_result_t init_result = init_flatcc_builder_safe(&builder);
+    if (init_result.error != OPENPGP_SUCCESS) {
+        return init_result;
+    }
     
     /* Create the request manually */
     model_EncryptSymmetricBytesRequest_start_as_root(&builder);
@@ -1456,7 +1499,10 @@ openpgp_result_t openpgp_decrypt_symmetric_bytes(const uint8_t *data, size_t dat
     
     /* Build DecryptSymmetricBytesRequest */
     flatcc_builder_t builder;
-    flatcc_builder_init(&builder);
+    openpgp_result_t init_result = init_flatcc_builder_safe(&builder);
+    if (init_result.error != OPENPGP_SUCCESS) {
+        return init_result;
+    }
     
     /* Create the request manually */
     model_DecryptSymmetricBytesRequest_start_as_root(&builder);
@@ -1586,7 +1632,10 @@ openpgp_result_t openpgp_encrypt(const char *message,
 
     /* Build EncryptRequest */
     flatcc_builder_t builder;
-    flatcc_builder_init(&builder);
+    openpgp_result_t init_result = init_flatcc_builder_safe(&builder);
+    if (init_result.error != OPENPGP_SUCCESS) {
+        return init_result;
+    }
     
     /* Create the request manually */
     model_EncryptRequest_start_as_root(&builder);
@@ -1695,7 +1744,10 @@ openpgp_result_t openpgp_decrypt(const char *message,
 
     /* Build DecryptRequest */
     flatcc_builder_t builder;
-    flatcc_builder_init(&builder);
+    openpgp_result_t init_result = init_flatcc_builder_safe(&builder);
+    if (init_result.error != OPENPGP_SUCCESS) {
+        return init_result;
+    }
     
     /* Create the request manually */
     model_DecryptRequest_start_as_root(&builder);
@@ -1908,7 +1960,10 @@ openpgp_result_t openpgp_sign(const char *message,
 
     /* Build SignRequest */
     flatcc_builder_t builder;
-    flatcc_builder_init(&builder);
+    openpgp_result_t init_result = init_flatcc_builder_safe(&builder);
+    if (init_result.error != OPENPGP_SUCCESS) {
+        return init_result;
+    }
     
     /* Create the request manually */
     model_SignRequest_start_as_root(&builder);
@@ -2023,7 +2078,10 @@ openpgp_result_t openpgp_sign_data(const char *message,
 
     /* Build SignDataRequest */
     flatcc_builder_t builder;
-    flatcc_builder_init(&builder);
+    openpgp_result_t init_result = init_flatcc_builder_safe(&builder);
+    if (init_result.error != OPENPGP_SUCCESS) {
+        return init_result;
+    }
     
     /* Create the request manually */
     model_SignDataRequest_start_as_root(&builder);
@@ -2134,7 +2192,10 @@ openpgp_result_t openpgp_sign_file(const char *input_file,
 
     /* Build SignFileRequest */
     flatcc_builder_t builder;
-    flatcc_builder_init(&builder);
+    openpgp_result_t init_result = init_flatcc_builder_safe(&builder);
+    if (init_result.error != OPENPGP_SUCCESS) {
+        return init_result;
+    }
     
     /* Create the request manually */
     model_SignFileRequest_start_as_root(&builder);
@@ -2249,7 +2310,10 @@ openpgp_result_t openpgp_sign_bytes(const uint8_t *data, size_t data_len,
 
     /* Build SignBytesRequest */
     flatcc_builder_t builder;
-    flatcc_builder_init(&builder);
+    openpgp_result_t init_result = init_flatcc_builder_safe(&builder);
+    if (init_result.error != OPENPGP_SUCCESS) {
+        return init_result;
+    }
     
     /* Create the request manually */
     model_SignBytesRequest_start_as_root(&builder);
@@ -2360,7 +2424,10 @@ openpgp_result_t openpgp_sign_data_bytes(const uint8_t *data, size_t data_len,
 
     /* Build SignDataBytesRequest */
     flatcc_builder_t builder;
-    flatcc_builder_init(&builder);
+    openpgp_result_t init_result = init_flatcc_builder_safe(&builder);
+    if (init_result.error != OPENPGP_SUCCESS) {
+        return init_result;
+    }
     
     /* Create the request manually */
     model_SignDataBytesRequest_start_as_root(&builder);
