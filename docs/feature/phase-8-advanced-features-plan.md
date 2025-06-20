@@ -12,13 +12,13 @@ The current bridge does NOT support:
 ## Success Criteria
 - [ ] Composite sign-and-encrypt/decrypt-and-verify operations implemented
 - [ ] Comprehensive edge case testing for all existing operations
-- [ ] Performance benchmarks established for all operations
+- [ ] ~~Performance benchmarks established for all operations~~ [SKIPPED]
 - [ ] Integration tests verify all operations work together
 - [ ] Memory optimization for large data operations
 - [ ] Streaming operations for large files (if feasible)
 - [ ] No memory leaks detected by valgrind
 - [ ] All tests pass with 100% success rate
-- [ ] Documentation complete with performance guidelines
+- [ ] Documentation complete ~~with performance guidelines~~ [SKIPPED]
 
 ## Task Breakdown
 
@@ -71,7 +71,7 @@ The current bridge does NOT support:
 1. [ ] Create `/c/test/test_advanced.c` for edge case testing
 2. [ ] Implement tests for boundary conditions:
    - [ ] Empty strings and NULL pointers
-   - [ ] Maximum size data (near 4KB FlatBuffer limit)
+   - [ ] Maximum size data (3.5KB to test near 4KB FlatBuffer limit)
    - [ ] Binary data with all possible byte values
    - [ ] Unicode/UTF-8 text in various languages
    - [ ] Very long email addresses and names
@@ -109,10 +109,12 @@ The current bridge does NOT support:
    - [ ] Keys generated with all algorithms work for all operations
    - [ ] Encrypted data can be decrypted after key operations
    - [ ] Signatures remain valid after key conversions
-4. [ ] Stress testing:
+4. [ ] Stress testing (run under valgrind):
    - [ ] 1000+ sequential operations without leaks
    - [ ] Alternating operation types
    - [ ] Concurrent operation simulation (if applicable)
+   - [ ] Must pass valgrind with zero leaks and no memory errors
+   - [ ] Monitor for buffer overruns and use-after-free errors
 5. [ ] Error recovery testing:
    - [ ] Recovery from failed operations
    - [ ] Cleanup after errors
@@ -124,34 +126,17 @@ The current bridge does NOT support:
 - [ ] Operations are truly interoperable
 - [ ] Error recovery works correctly
 
-### Task 8.4: Performance Optimization and Benchmarking
-**Priority**: High
-**Estimated Time**: 4 hours
+### Task 8.4: Performance Optimization and Benchmarking [SKIPPED]
+**Priority**: Low - SKIPPED
+**Estimated Time**: N/A
 
-#### Subtasks:
-1. [ ] Create `/c/test/test_performance.c` for benchmarking
-2. [ ] Implement performance tests for:
-   - [ ] Key generation (RSA 2048, 3072, 4096)
-   - [ ] Key generation (ECDSA P-256, P-384, P-521)
-   - [ ] Key generation (Ed25519)
-   - [ ] Encryption/decryption of various sizes (1KB to 3KB)
-   - [ ] Signing/verification performance
-   - [ ] Symmetric operations vs asymmetric
-3. [ ] Profile memory usage patterns:
-   - [ ] Peak memory for each operation
-   - [ ] Memory allocation frequency
-   - [ ] Identify optimization opportunities
-4. [ ] Optimize critical paths:
-   - [ ] Minimize memory allocations
-   - [ ] Reuse FlatBuffer builders where possible
-   - [ ] Optimize string handling
-   - [ ] Cache frequently used data
+**Reason**: Performance optimization deferred to focus on functionality and reliability.
 
-#### Test Requirements:
-- [ ] Establish baseline performance metrics
-- [ ] Document performance characteristics
-- [ ] Memory usage stays within reasonable bounds
-- [ ] No performance regressions
+#### Skipped Items:
+- [SKIP] Create `/c/test/test_performance.c` for benchmarking
+- [SKIP] Implement performance tests for all operations
+- [SKIP] Profile memory usage patterns
+- [SKIP] Optimize critical paths
 
 ### Task 8.5: Add Large Data Support (Within Limits)
 **Priority**: Medium
@@ -159,24 +144,27 @@ The current bridge does NOT support:
 
 #### Subtasks:
 1. [ ] Implement chunking strategies for near-limit data:
-   - [ ] Document maximum safe sizes for each operation
+   - [ ] Document maximum safe sizes for each operation (~3.5KB for messages)
    - [ ] Add size validation before operations
-   - [ ] Implement data splitting for large inputs
+   - [ ] Implement data splitting for inputs up to 10MB
+   - [ ] Return clear error for data > 10MB
 2. [ ] Create streaming-like interface (simulated):
    - [ ] `openpgp_encrypt_stream_init()`
-   - [ ] `openpgp_encrypt_stream_update()`
+   - [ ] `openpgp_encrypt_stream_update()` - Process chunks up to 3KB each
    - [ ] `openpgp_encrypt_stream_final()`
    - [ ] Similar for decrypt/sign/verify
-3. [ ] Test with maximum safe sizes:
-   - [ ] Find exact limits for each operation
-   - [ ] Test behavior at limits
-   - [ ] Ensure graceful failure above limits
+3. [ ] Test with various file sizes:
+   - [ ] Test files: 1MB, 5MB, 10MB
+   - [ ] Find exact FlatBuffer serialization limits
+   - [ ] Test behavior at limits (3.5KB, 10MB)
+   - [ ] Ensure graceful failure above limits with clear error messages
 
 #### Test Requirements:
 - [ ] Large data handled within FlatBuffer constraints
-- [ ] Clear documentation of size limits
-- [ ] Graceful handling of oversized data
-- [ ] Streaming interface works correctly
+- [ ] Clear documentation of size limits (3.5KB per operation, 10MB total)
+- [ ] Graceful handling of oversized data with specific error codes
+- [ ] Streaming interface works correctly for files up to 10MB
+- [ ] Run all large data tests under valgrind to detect memory issues
 
 ### Task 8.6: Create Advanced Examples and Documentation
 **Priority**: High
@@ -187,9 +175,9 @@ The current bridge does NOT support:
    - [ ] `/c/examples/pgp_tool.c` - Command-line PGP tool
    - [ ] `/c/examples/key_manager.c` - Key management utility
    - [ ] `/c/examples/batch_processor.c` - Batch encryption tool
-   - [ ] `/c/examples/performance_test.c` - Performance testing
+   - [ ] ~~`/c/examples/performance_test.c` - Performance testing~~ [SKIPPED]
 2. [ ] Write comprehensive documentation:
-   - [ ] Performance tuning guide
+   - [ ] ~~Performance tuning guide~~ [SKIPPED]
    - [ ] Size limits and constraints
    - [ ] Memory management best practices
    - [ ] Error handling patterns
@@ -213,7 +201,7 @@ The current bridge does NOT support:
 1. Task 8.1: Composite operations (high-value feature)
 2. Task 8.2: Edge case testing (foundation for robustness)
 3. Task 8.3: Integration tests (verify composite operations work)
-4. Task 8.4: Performance optimization (establish baselines)
+4. Task 8.4: ~~Performance optimization~~ [SKIPPED]
 5. Task 8.5: Large data support (push the boundaries)
 6. Task 8.6: Documentation (capture all knowledge)
 
@@ -230,7 +218,7 @@ The current bridge does NOT support:
 ## Definition of Done
 - [ ] All composite operations implemented and tested
 - [ ] All edge cases handled gracefully
-- [ ] Performance benchmarks established and documented
+- [ ] ~~Performance benchmarks established and documented~~ [SKIPPED]
 - [ ] Integration tests pass consistently
 - [ ] Convenience functions simplify common tasks
 - [ ] Size limits documented and enforced
