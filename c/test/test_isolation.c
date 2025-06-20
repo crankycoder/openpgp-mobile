@@ -6,7 +6,7 @@
 
 #include "test_framework.h"
 #include "memory_helpers.h"
-#include "../src/openpgp.h"
+#include "openpgp.h"
 
 /* Global counters for testing purposes (shared with test_framework.h) */
 extern int g_tests_run;
@@ -140,13 +140,13 @@ TEST_CASE(isolation_flatbuffer_builder_state) {
         .comment = NULL,
         .passphrase = NULL,
         .key_options = {
-            .key_type = OPENPGP_KEY_TYPE_RSA,
-            .key_size = 2048,
-            .curve = OPENPGP_CURVE_UNSPECIFIED
+            .algorithm = OPENPGP_ALGORITHM_RSA,
+            .rsa_bits = 2048,
+            .curve = OPENPGP_CURVE_SECP256K1
         }
     };
     
-    openpgp_result_t result1 = openpgp_generate_keypair(&options1);
+    openpgp_result_t result1 = openpgp_generate_key_with_options(&options1);
     
     /* Clean up first result */
     if (result1.error_message) free(result1.error_message);
@@ -159,13 +159,13 @@ TEST_CASE(isolation_flatbuffer_builder_state) {
         .comment = "Different comment",
         .passphrase = "different_pass",
         .key_options = {
-            .key_type = OPENPGP_KEY_TYPE_RSA,
-            .key_size = 2048,
-            .curve = OPENPGP_CURVE_UNSPECIFIED
+            .algorithm = OPENPGP_ALGORITHM_RSA,
+            .rsa_bits = 2048,
+            .curve = OPENPGP_CURVE_SECP256K1
         }
     };
     
-    openpgp_result_t result2 = openpgp_generate_keypair(&options2);
+    openpgp_result_t result2 = openpgp_generate_key_with_options(&options2);
     
     /* Clean up second result */
     if (result2.error_message) free(result2.error_message);
