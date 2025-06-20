@@ -316,8 +316,8 @@ TEST_CASE(response_parsing_large_keys) {
     test_setup();
     
     // Test with moderately large key data (within safe flatcc limits)
-    char large_public_key[400];  // Safe size based on Task #3 findings
-    char large_private_key[500]; // Safe size based on Task #3 findings
+    char large_public_key[400] = {0};  // Initialize to prevent uninitialized value errors
+    char large_private_key[500] = {0}; // Initialize to prevent uninitialized value errors
     
     // Fill with realistic-looking key data
     strcpy(large_public_key, "-----BEGIN PGP PUBLIC KEY-----\n");
