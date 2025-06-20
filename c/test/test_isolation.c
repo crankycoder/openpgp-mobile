@@ -8,11 +8,11 @@
 #include "memory_helpers.h"
 #include "openpgp.h"
 
-/* Global counters for testing purposes (shared with test_framework.h) */
-extern int g_tests_run;
-extern int g_tests_failed;
-extern int g_major_tests_run;
-extern int g_major_tests_failed;
+/* Global counters for testing purposes (defined here for standalone test) */
+int g_tests_run = 0;
+int g_tests_failed = 0;
+int g_major_tests_run = 0;
+int g_major_tests_failed = 0;
 
 /* Test state tracking */
 static int initial_tests_run = 0;
