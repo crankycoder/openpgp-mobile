@@ -210,7 +210,7 @@ TEST_CASE(isolation_error_state_cleanup) {
     TEST_ASSERT_EQUAL_MESSAGE(OPENPGP_SUCCESS, init_result.error, "Library should initialize after previous error");
     
     /* Operation should now succeed */
-    openpgp_result_t success_result = openpgp_generate_keypair(&options);
+    openpgp_result_t success_result = openpgp_generate_key_with_options(&options);
     /* Note: This might still fail due to bridge issues, but error should be different */
     
     /* Clean up all results */
