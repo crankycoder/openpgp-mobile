@@ -26,6 +26,7 @@ static struct {
 static openpgp_result_t create_error_result(openpgp_error_t error, const char *message);
 static openpgp_result_t create_success_result(void *data, size_t data_size);
 static char *duplicate_string(const char *str);
+static bool validate_buffer_size(size_t size, const char *operation);
 static openpgp_result_t serialize_generate_request(const openpgp_options_t *options, void **buffer, size_t *buffer_size);
 static openpgp_result_t parse_keypair_response(const void *response_data, size_t response_size);
 
@@ -237,6 +238,23 @@ static char *duplicate_string(const char *str) {
     return dup;
 }
 
+/* Buffer size validation helper - based on Phase 7.6 findings of 4KB FlatCC limit */
+static bool validate_buffer_size(size_t size, const char *operation) {
+    const size_t MAX_FLATBUFFER_SIZE = 4 * 1024; /* 4KB empirical limit from Phase 7.6 */
+    
+    if (size == 0) {
+        return false; /* Invalid empty buffer */
+    }
+    
+    if (size > MAX_FLATBUFFER_SIZE) {
+        /* Log warning but don't fail - some operations might work */
+        fprintf(stderr, "Warning: %s buffer size %zu exceeds recommended limit of %zu bytes\n", 
+                operation ? operation : "Buffer", size, MAX_FLATBUFFER_SIZE);
+    }
+    
+    return true; /* Allow operation to proceed with warning */
+}
+
 /* Internal helper to serialize generate request using FlatBuffers */
 static openpgp_result_t serialize_generate_request(const openpgp_options_t *options, void **buffer, size_t *buffer_size) {
     /* Create FlatBuffer builder */
@@ -306,6 +324,13 @@ static openpgp_result_t serialize_generate_request(const openpgp_options_t *opti
     
     /* Get buffer size and data */
     *buffer_size = flatcc_builder_get_buffer_size(B);
+    
+    /* Validate buffer size */
+    if (!validate_buffer_size(*buffer_size, "FlatBuffer serialization")) {
+        flatcc_builder_clear(B);
+        return create_error_result(OPENPGP_ERROR_SERIALIZATION, "Invalid buffer size");
+    }
+    
     void *data = malloc(*buffer_size);
     if (!data) {
         flatcc_builder_clear(B);
@@ -413,6 +438,12 @@ openpgp_result_t openpgp_convert_private_to_public(const char *private_key) {
         flatcc_builder_clear(&builder);
         return create_error_result(OPENPGP_ERROR_SERIALIZATION, 
                                  "Failed to serialize ConvertPrivateKeyToPublicKeyRequest");
+    }
+    
+    /* Validate buffer size */
+    if (!validate_buffer_size(size, "ConvertPrivateKeyToPublicKeyRequest")) {
+        flatcc_builder_clear(&builder);
+        return create_error_result(OPENPGP_ERROR_SERIALIZATION, "Buffer size validation failed");
     }
     
     /* Call bridge */
