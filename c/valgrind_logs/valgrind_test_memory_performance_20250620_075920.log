@@ -1,0 +1,54 @@
+Command: valgrind --leak-check=full --show-leak-kinds=all --track-origins=yes --error-exitcode=1 --suppressions=/home/vng/dev/openpgp-mobile/c/test/valgrind.supp build/test_memory_performance
+Timestamp: Fri Jun 20 07:59:20 AM EDT 2025
+========================
+==1538802== Memcheck, a memory error detector
+==1538802== Copyright (C) 2002-2022, and GNU GPL'd, by Julian Seward et al.
+==1538802== Using Valgrind-3.22.0 and LibVEX; rerun with -h for copyright info
+==1538802== Command: build/test_memory_performance
+==1538802== 
+
+=== Memory Regression Test Suite - Performance Benchmarks ===
+Benchmarking memory operations for performance regressions
+
+Running Size Validation Performance in isolation... Benchmarking size validation performance...
+[31mFAIL[0m test/test_memory_performance.c:44: Expected 9, got 10
+FAIL
+Running Error Handling Overhead in isolation... Benchmarking error handling overhead...
+Error handling benchmark: 3.80ms total, 0.004ms/op
+Error handling performance benchmark passed
+PASS
+Running Memory Allocation Patterns in isolation... Benchmarking memory allocation patterns...
+[31mFAIL[0m test/test_memory_performance.c:95: Expected 9, got 10
+FAIL
+Running Size Validation Edge Cases in isolation... Benchmarking size validation edge cases...
+Size validation edge cases benchmark: 37.79ms total, 0.038ms/op
+Size validation edge cases performance benchmark passed
+PASS
+Running Test Isolation Overhead in isolation... Benchmarking test isolation overhead...
+[31mFAIL[0m test/test_memory_performance.c:153: Expected 9, got 10
+FAIL
+
+=== Performance Benchmarks Summary ===
+Tests run: 0, Tests failed: 0
+[31mFAILED: 3 benchmark(s) failed
+[0mPerformance regression detected - memory fixes may have introduced overhead
+==1538802== 
+==1538802== HEAP SUMMARY:
+==1538802==     in use at exit: 1,024 bytes in 1 blocks
+==1538802==   total heap usage: 3,010 allocs, 3,009 frees, 3,071,272 bytes allocated
+==1538802== 
+==1538802== 1,024 bytes in 1 blocks are definitely lost in loss record 1 of 1
+==1538802==    at 0x4846828: malloc (in /usr/libexec/valgrind/vgpreload_memcheck-amd64-linux.so)
+==1538802==    by 0x10971E: benchmark_memory_allocation_patterns (test_memory_performance.c:89)
+==1538802==    by 0x109E94: run_isolated_test (test_isolation_manager.c:68)
+==1538802==    by 0x109D07: main (test_memory_performance.c:175)
+==1538802== 
+==1538802== LEAK SUMMARY:
+==1538802==    definitely lost: 1,024 bytes in 1 blocks
+==1538802==    indirectly lost: 0 bytes in 0 blocks
+==1538802==      possibly lost: 0 bytes in 0 blocks
+==1538802==    still reachable: 0 bytes in 0 blocks
+==1538802==         suppressed: 0 bytes in 0 blocks
+==1538802== 
+==1538802== For lists of detected and suppressed errors, rerun with: -s
+==1538802== ERROR SUMMARY: 1 errors from 1 contexts (suppressed: 0 from 0)
