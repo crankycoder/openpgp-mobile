@@ -323,7 +323,9 @@ EOF
             fi
         fi
     done
-}# Parse command line arguments
+}
+
+# Parse command line arguments
 RUN_TESTS=0
 CLEAN=0
 
