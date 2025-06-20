@@ -111,8 +111,17 @@ static openpgp_result_t test_parse_keypair_response(const void *response_data, s
         return (openpgp_result_t){OPENPGP_ERROR_BRIDGE_CALL, strdup("No response data"), NULL, 0};
     }
     
-    // Parse FlatBuffer response as KeyPairResponse
-    model_KeyPairResponse_table_t response = model_KeyPairResponse_as_root(response_data);
+    // Basic validation of buffer size
+    if (response_size < 8) {
+        return (openpgp_result_t){OPENPGP_ERROR_SERIALIZATION, strdup("Buffer too small for FlatBuffer"), NULL, 0};
+    }
+    
+    // Parse FlatBuffer response as KeyPairResponse with error handling
+    model_KeyPairResponse_table_t response;
+    
+    // Use a try-catch equivalent by checking buffer validity first
+    // FlatBuffer root parsing can fail with malformed data
+    response = model_KeyPairResponse_as_root(response_data);
     if (!response) {
         return (openpgp_result_t){OPENPGP_ERROR_SERIALIZATION, strdup("Invalid FlatBuffer response"), NULL, 0};
     }
