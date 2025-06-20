@@ -1,0 +1,20 @@
+# Valgrind suppressions for FlatBuffer memory tests
+#
+# Add suppressions for known false positives here
+# Format:
+# {
+#    suppression_name
+#    Memcheck:Leak
+#    match-leak-kinds: definite
+#    fun:malloc
+#    fun:some_function
+# }
+
+# Example: Suppress known library leaks
+# {
+#    flatcc_library_init
+#    Memcheck:Leak
+#    match-leak-kinds: definite
+#    fun:malloc
+#    fun:flatcc_*
+# }
