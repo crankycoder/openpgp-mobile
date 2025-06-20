@@ -314,6 +314,11 @@ static openpgp_result_t serialize_generate_request(const openpgp_options_t *opti
     
     /* Copy the buffer data */
     void *builder_buffer = flatcc_builder_get_direct_buffer(B, buffer_size);
+    if (!builder_buffer) {
+        free(data);
+        flatcc_builder_clear(B);
+        return create_error_result(OPENPGP_ERROR_SERIALIZATION, "Failed to get buffer from FlatBuffer builder");
+    }
     memcpy(data, builder_buffer, *buffer_size);
     *buffer = data;
     

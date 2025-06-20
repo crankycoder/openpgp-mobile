@@ -87,6 +87,65 @@ test-minimal: $(BUILDDIR)/test_sign_verify_minimal
 # Run both debug tests
 test-all-debug: test-debug test-minimal
 
+# Memory test executable
+$(BUILDDIR)/test_flatbuffer_memory: $(TESTDIR)/test_flatbuffer_memory.c $(TESTDIR)/memory_helpers.c $(STATIC_LIB) $(LIBDIR)/libflatccrt.a
+	$(CC) $(CFLAGS) $(INCLUDES) -DDEBUG_MEMORY=1 -o $@ $^ -ldl
+
+# Serialize request test executable
+$(BUILDDIR)/test_serialize_request: $(TESTDIR)/test_serialize_request.c $(TESTDIR)/memory_helpers.c $(STATIC_LIB) $(LIBDIR)/libflatccrt.a
+	$(CC) $(CFLAGS) $(INCLUDES) -DDEBUG_MEMORY=1 -o $@ $^ -ldl
+
+# Serialize validation test executable
+$(BUILDDIR)/test_serialize_validation: $(TESTDIR)/test_serialize_validation.c $(TESTDIR)/memory_helpers.c $(STATIC_LIB) $(LIBDIR)/libflatccrt.a
+	$(CC) $(CFLAGS) $(INCLUDES) -DDEBUG_MEMORY=1 -o $@ $^ -ldl
+
+# FlatBuffer string handling test executable
+$(BUILDDIR)/test_flatbuffer_strings: $(TESTDIR)/test_flatbuffer_strings.c $(TESTDIR)/memory_helpers.c $(STATIC_LIB) $(LIBDIR)/libflatccrt.a
+	$(CC) $(CFLAGS) $(INCLUDES) -DDEBUG_MEMORY=1 -o $@ $^ -ldl
+
+# Nested structures test executable
+$(BUILDDIR)/test_nested_structures: $(TESTDIR)/test_nested_structures.c $(TESTDIR)/memory_helpers.c $(STATIC_LIB) $(LIBDIR)/libflatccrt.a
+	$(CC) $(CFLAGS) $(INCLUDES) -DDEBUG_MEMORY=1 -o $@ $^ -ldl
+
+# Response parsing test executable
+$(BUILDDIR)/test_response_parsing: $(TESTDIR)/test_response_parsing.c $(TESTDIR)/memory_helpers.c $(STATIC_LIB) $(LIBDIR)/libflatccrt.a
+	$(CC) $(CFLAGS) $(INCLUDES) -DDEBUG_MEMORY=1 -o $@ $^ -ldl
+
+# Run memory tests
+test-memory: $(BUILDDIR)/test_flatbuffer_memory
+	@echo "Running FlatBuffer memory tests..."
+	cd .. && LD_LIBRARY_PATH=output/binding:$$LD_LIBRARY_PATH ./c/$(BUILDDIR)/test_flatbuffer_memory
+
+# Run serialize request tests
+test-serialize: $(BUILDDIR)/test_serialize_request
+	@echo "Running serialize_generate_request tests..."
+	cd .. && LD_LIBRARY_PATH=output/binding:$$LD_LIBRARY_PATH ./c/$(BUILDDIR)/test_serialize_request
+
+# Run serialize validation tests
+test-serialize-validation: $(BUILDDIR)/test_serialize_validation
+	@echo "Running serialize_generate_request validation tests..."
+	cd .. && LD_LIBRARY_PATH=output/binding:$$LD_LIBRARY_PATH ./c/$(BUILDDIR)/test_serialize_validation
+
+# Run FlatBuffer string handling tests
+test-strings: $(BUILDDIR)/test_flatbuffer_strings
+	@echo "Running FlatBuffer string handling tests..."
+	cd .. && LD_LIBRARY_PATH=output/binding:$$LD_LIBRARY_PATH ./c/$(BUILDDIR)/test_flatbuffer_strings
+
+# Run nested structures tests
+test-nested: $(BUILDDIR)/test_nested_structures
+	@echo "Running nested FlatBuffer structures tests..."
+	cd .. && LD_LIBRARY_PATH=output/binding:$$LD_LIBRARY_PATH ./c/$(BUILDDIR)/test_nested_structures
+
+# Run response parsing tests
+test-response: $(BUILDDIR)/test_response_parsing
+	@echo "Running FlatBuffer response parsing tests..."
+	cd .. && LD_LIBRARY_PATH=output/binding:$$LD_LIBRARY_PATH ./c/$(BUILDDIR)/test_response_parsing
+
+# Run memory tests with valgrind
+test-memory-valgrind: $(BUILDDIR)/test_flatbuffer_memory
+	@echo "Running FlatBuffer memory tests with valgrind..."
+	cd $(TESTDIR) && ./valgrind_test.sh
+
 # Clean build artifacts
 clean:
 	rm -rf $(BUILDDIR) $(LIBDIR)
@@ -103,4 +162,4 @@ install: all
 generate:
 	$(MAKE) -C .. flatbuffers_c_wrapper
 
-.PHONY: all directories test clean distclean install generate
+.PHONY: all directories test clean distclean install generate test-memory test-memory-valgrind test-debug test-minimal test-all-debug
