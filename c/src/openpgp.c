@@ -920,7 +920,10 @@ openpgp_result_t openpgp_encrypt_symmetric(const char *message, const char *pass
     
     /* Build EncryptSymmetricRequest */
     flatcc_builder_t builder;
-    flatcc_builder_init(&builder);
+    openpgp_result_t init_result = init_flatcc_builder_safe(&builder);
+    if (init_result.error != OPENPGP_SUCCESS) {
+        return init_result;
+    }
     
     /* Create the request manually */
     model_EncryptSymmetricRequest_start_as_root(&builder);
@@ -1037,7 +1040,10 @@ openpgp_result_t openpgp_decrypt_symmetric(const char *message, const char *pass
     
     /* Build DecryptSymmetricRequest */
     flatcc_builder_t builder;
-    flatcc_builder_init(&builder);
+    openpgp_result_t init_result = init_flatcc_builder_safe(&builder);
+    if (init_result.error != OPENPGP_SUCCESS) {
+        return init_result;
+    }
     
     /* Create the request manually */
     model_DecryptSymmetricRequest_start_as_root(&builder);
@@ -1155,7 +1161,10 @@ openpgp_result_t openpgp_encrypt_symmetric_file(const char *input_file, const ch
     
     /* Build EncryptSymmetricFileRequest */
     flatcc_builder_t builder;
-    flatcc_builder_init(&builder);
+    openpgp_result_t init_result = init_flatcc_builder_safe(&builder);
+    if (init_result.error != OPENPGP_SUCCESS) {
+        return init_result;
+    }
     
     /* Create the request manually */
     model_EncryptSymmetricFileRequest_start_as_root(&builder);
@@ -1262,7 +1271,10 @@ openpgp_result_t openpgp_decrypt_symmetric_file(const char *input_file, const ch
     
     /* Build DecryptSymmetricFileRequest */
     flatcc_builder_t builder;
-    flatcc_builder_init(&builder);
+    openpgp_result_t init_result = init_flatcc_builder_safe(&builder);
+    if (init_result.error != OPENPGP_SUCCESS) {
+        return init_result;
+    }
     
     /* Create the request manually */
     model_DecryptSymmetricFileRequest_start_as_root(&builder);
@@ -1359,7 +1371,10 @@ openpgp_result_t openpgp_encrypt_symmetric_bytes(const uint8_t *data, size_t dat
     
     /* Build EncryptSymmetricBytesRequest */
     flatcc_builder_t builder;
-    flatcc_builder_init(&builder);
+    openpgp_result_t init_result = init_flatcc_builder_safe(&builder);
+    if (init_result.error != OPENPGP_SUCCESS) {
+        return init_result;
+    }
     
     /* Create the request manually */
     model_EncryptSymmetricBytesRequest_start_as_root(&builder);
@@ -1484,7 +1499,10 @@ openpgp_result_t openpgp_decrypt_symmetric_bytes(const uint8_t *data, size_t dat
     
     /* Build DecryptSymmetricBytesRequest */
     flatcc_builder_t builder;
-    flatcc_builder_init(&builder);
+    openpgp_result_t init_result = init_flatcc_builder_safe(&builder);
+    if (init_result.error != OPENPGP_SUCCESS) {
+        return init_result;
+    }
     
     /* Create the request manually */
     model_DecryptSymmetricBytesRequest_start_as_root(&builder);
@@ -1614,7 +1632,10 @@ openpgp_result_t openpgp_encrypt(const char *message,
 
     /* Build EncryptRequest */
     flatcc_builder_t builder;
-    flatcc_builder_init(&builder);
+    openpgp_result_t init_result = init_flatcc_builder_safe(&builder);
+    if (init_result.error != OPENPGP_SUCCESS) {
+        return init_result;
+    }
     
     /* Create the request manually */
     model_EncryptRequest_start_as_root(&builder);
