@@ -63,7 +63,7 @@ Each test will be written to fail first, then implementation will be fixed to ma
 
 ### Task #3: Fix serialize_generate_request Buffer Management
 
-- Status: in progress
+- Status: in progress (ISSUE IDENTIFIED: flatcc_builder_get_direct_buffer fails for large buffers)
 - Description: Fix buffer overrun in serialize_generate_request using TDD approach
 - Acceptance Criteria:
   - No buffer overruns with any input size
