@@ -7,6 +7,18 @@
 #include "test_framework.h"
 #include "memory_helpers.h"
 
+/* Add missing TEST_ASSERT_FALSE macro */
+#define TEST_ASSERT_FALSE(condition) \
+    do { \
+        g_tests_run++; \
+        if (condition) { \
+            g_tests_failed++; \
+            printf(COLOR_RED "FAIL" COLOR_RESET " %s:%d: Expected false, got true: %s\n", \
+                   __FILE__, __LINE__, #condition); \
+            return 1; \
+        } \
+    } while (0)
+
 /* Global test counters */
 int g_tests_run = 0;
 int g_tests_failed = 0;
