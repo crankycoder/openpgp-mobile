@@ -146,6 +146,15 @@ test-memory-valgrind: $(BUILDDIR)/test_flatbuffer_memory
 	@echo "Running FlatBuffer memory tests with valgrind..."
 	cd $(TESTDIR) && ./valgrind_test.sh
 
+# Check for memory leaks in all memory regression tests
+test-memory-regression: build-memory-tests
+	@echo "Running automated memory leak regression check..."
+	cd $(TESTDIR) && ./check-memory-leaks.sh
+
+# Build all memory test executables
+build-memory-tests: $(BUILDDIR)/test_memory_error_paths $(BUILDDIR)/test_memory_large_data $(BUILDDIR)/test_memory_stress $(BUILDDIR)/test_memory_edge_cases $(BUILDDIR)/test_memory_performance
+	@echo "All memory test executables built"
+
 # Clean build artifacts
 clean:
 	rm -rf $(BUILDDIR) $(LIBDIR)
