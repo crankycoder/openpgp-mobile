@@ -103,6 +103,10 @@ $(BUILDDIR)/test_serialize_validation: $(TESTDIR)/test_serialize_validation.c $(
 $(BUILDDIR)/test_flatbuffer_strings: $(TESTDIR)/test_flatbuffer_strings.c $(TESTDIR)/memory_helpers.c $(STATIC_LIB) $(LIBDIR)/libflatccrt.a
 	$(CC) $(CFLAGS) $(INCLUDES) -DDEBUG_MEMORY=1 -o $@ $^ -ldl
 
+# Nested structures test executable
+$(BUILDDIR)/test_nested_structures: $(TESTDIR)/test_nested_structures.c $(TESTDIR)/memory_helpers.c $(STATIC_LIB) $(LIBDIR)/libflatccrt.a
+	$(CC) $(CFLAGS) $(INCLUDES) -DDEBUG_MEMORY=1 -o $@ $^ -ldl
+
 # Run memory tests
 test-memory: $(BUILDDIR)/test_flatbuffer_memory
 	@echo "Running FlatBuffer memory tests..."
@@ -122,6 +126,11 @@ test-serialize-validation: $(BUILDDIR)/test_serialize_validation
 test-strings: $(BUILDDIR)/test_flatbuffer_strings
 	@echo "Running FlatBuffer string handling tests..."
 	cd .. && LD_LIBRARY_PATH=output/binding:$$LD_LIBRARY_PATH ./c/$(BUILDDIR)/test_flatbuffer_strings
+
+# Run nested structures tests
+test-nested: $(BUILDDIR)/test_nested_structures
+	@echo "Running nested FlatBuffer structures tests..."
+	cd .. && LD_LIBRARY_PATH=output/binding:$$LD_LIBRARY_PATH ./c/$(BUILDDIR)/test_nested_structures
 
 # Run memory tests with valgrind
 test-memory-valgrind: $(BUILDDIR)/test_flatbuffer_memory
