@@ -270,11 +270,20 @@ TEST_CASE(response_parsing_empty_input) {
 TEST_CASE(response_parsing_malformed_buffer) {
     test_setup();
     
-    // Test malformed/corrupted buffer
-    char malformed_buffer[100];
-    memset(malformed_buffer, 0xAA, sizeof(malformed_buffer)); // Fill with garbage
+    // Create a valid buffer first, then corrupt it slightly
+    size_t buffer_size;
+    void *response_buffer = create_keypair_response("public", "private", NULL, &buffer_size);
     
-    openpgp_result_t result = test_parse_keypair_response(malformed_buffer, sizeof(malformed_buffer));
+    TEST_ASSERT_NOT_NULL(response_buffer);
+    
+    // Corrupt just the first few bytes to make it malformed but not completely garbage
+    char *byte_buffer = (char*)response_buffer;
+    byte_buffer[0] = 0xFF;
+    byte_buffer[1] = 0xFF;
+    byte_buffer[2] = 0xFF;
+    byte_buffer[3] = 0xFF;
+    
+    openpgp_result_t result = test_parse_keypair_response(response_buffer, buffer_size);
     
     TEST_ASSERT_EQUAL_MESSAGE(OPENPGP_ERROR_SERIALIZATION, result.error, "Malformed buffer should return serialization error");
     TEST_ASSERT_NOT_NULL(result.error_message);
@@ -283,6 +292,7 @@ TEST_CASE(response_parsing_malformed_buffer) {
     // Clean up
     if (result.error_message) free(result.error_message);
     if (result.data) free(result.data);
+    free(response_buffer);
     
     TEST_ASSERT_FALSE_MESSAGE(memory_tracking_has_leaks(), "Malformed buffer parsing leaked memory");
     
