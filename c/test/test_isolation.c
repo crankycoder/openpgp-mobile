@@ -192,13 +192,13 @@ TEST_CASE(isolation_error_state_cleanup) {
         .comment = NULL,
         .passphrase = NULL,
         .key_options = {
-            .key_type = OPENPGP_KEY_TYPE_RSA,
-            .key_size = 2048,
-            .curve = OPENPGP_CURVE_UNSPECIFIED
+            .algorithm = OPENPGP_ALGORITHM_RSA,
+            .rsa_bits = 2048,
+            .curve = OPENPGP_CURVE_SECP256K1
         }
     };
     
-    openpgp_result_t error_result = openpgp_generate_keypair(&options);
+    openpgp_result_t error_result = openpgp_generate_key_with_options(&options);
     TEST_ASSERT_NOT_EQUAL_MESSAGE(OPENPGP_SUCCESS, error_result.error, "Operation should fail with uninitialized library");
     
     /* Clean up error result */
