@@ -130,6 +130,17 @@ extern int g_major_tests_failed; /* Failed major test functions */
         } \
     } while (0)
 
+#define TEST_ASSERT_NOT_EQUAL_MESSAGE(expected, actual, msg) \
+    do { \
+        g_tests_run++; \
+        if ((expected) == (actual)) { \
+            g_tests_failed++; \
+            printf(COLOR_RED "FAIL" COLOR_RESET " %s:%d: %s (both values are %d)\n", \
+                   __FILE__, __LINE__, msg, (int)(expected)); \
+            return 1; \
+        } \
+    } while (0)
+
 /* Test case declaration */
 #define TEST_CASE(name) \
     int test_##name(void); \
