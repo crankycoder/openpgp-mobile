@@ -1,0 +1,81 @@
+Command: valgrind --leak-check=full --show-leak-kinds=all --track-origins=yes --error-exitcode=1 --suppressions=/home/vng/dev/openpgp-mobile/c/test/valgrind.supp /home/vng/dev/openpgp-mobile/c/build/test_memory_stress
+Timestamp: Fri Jun 20 08:08:19 AM EDT 2025
+========================
+==1541480== Memcheck, a memory error detector
+==1541480== Copyright (C) 2002-2022, and GNU GPL'd, by Julian Seward et al.
+==1541480== Using Valgrind-3.22.0 and LibVEX; rerun with -h for copyright info
+==1541480== Command: /home/vng/dev/openpgp-mobile/c/build/test_memory_stress
+==1541480== 
+
+=== Memory Regression Test Suite - Stress Testing ===
+Testing repeated operations for memory stability
+
+Running Repeated Encryption in isolation... Testing repeated encryption operations (100 iterations)...
+[31mFAIL[0m test/test_memory_stress.c:35: Expected 9, got 10
+FAIL
+Running Repeated Signing in isolation... Testing repeated signing operations (100 iterations)...
+[31mFAIL[0m test/test_memory_stress.c:53: Expected 9, got 10
+FAIL
+Running Repeated Key Generation in isolation... Testing repeated key generation (100 iterations)...
+[31mFAIL[0m test/test_memory_stress.c:72: Expected 9, got 10
+FAIL
+Running Rapid Sequential Operations in isolation... Testing rapid sequential operations (1000 iterations)...
+[31mFAIL[0m test/test_memory_stress.c:93: Expected 9, got 10
+FAIL
+Running Mixed Operation Patterns in isolation... Testing mixed operation patterns...
+[31mFAIL[0m test/test_memory_stress.c:114: Expected 9, got 10
+FAIL
+Running Size Validation Under Stress in isolation... Testing size validation under stress conditions...
+[31mFAIL[0m test/test_memory_stress.c:141: Expected 9, got 10
+FAIL
+Running Large Batch Operations in isolation... Testing large batch operations (50 batches)...
+[31mFAIL[0m test/test_memory_stress.c:177: Expected 9, got 10
+FAIL
+
+=== Stress Testing Summary ===
+Tests run: 0, Tests failed: 0
+[31mFAILED: 7 test(s) failed
+[0m==1541480== 
+==1541480== HEAP SUMMARY:
+==1541480==     in use at exit: 29,024 bytes in 103 blocks
+==1541480==   total heap usage: 118 allocs, 15 frees, 33,428 bytes allocated
+==1541480== 
+==1541480== 1,024 bytes in 1 blocks are definitely lost in loss record 1 of 5
+==1541480==    at 0x4846828: malloc (in /usr/libexec/valgrind/vgpreload_memcheck-amd64-linux.so)
+==1541480==    by 0x109BE4: test_size_validation_under_stress (test_memory_stress.c:136)
+==1541480==    by 0x10A240: run_isolated_test (test_isolation_manager.c:68)
+==1541480==    by 0x10A0ED: main (test_memory_stress.c:203)
+==1541480== 
+==1541480== 1,600 bytes in 50 blocks are indirectly lost in loss record 2 of 5
+==1541480==    at 0x4846828: malloc (in /usr/libexec/valgrind/vgpreload_memcheck-amd64-linux.so)
+==1541480==    by 0x109E3E: test_large_batch_operations (test_memory_stress.c:169)
+==1541480==    by 0x10A240: run_isolated_test (test_isolation_manager.c:68)
+==1541480==    by 0x10A109: main (test_memory_stress.c:204)
+==1541480== 
+==1541480== 2,000 (400 direct, 1,600 indirect) bytes in 1 blocks are definitely lost in loss record 3 of 5
+==1541480==    at 0x4846828: malloc (in /usr/libexec/valgrind/vgpreload_memcheck-amd64-linux.so)
+==1541480==    by 0x109DED: test_large_batch_operations (test_memory_stress.c:164)
+==1541480==    by 0x10A240: run_isolated_test (test_isolation_manager.c:68)
+==1541480==    by 0x10A109: main (test_memory_stress.c:204)
+==1541480== 
+==1541480== 25,600 bytes in 50 blocks are indirectly lost in loss record 4 of 5
+==1541480==    at 0x4846828: malloc (in /usr/libexec/valgrind/vgpreload_memcheck-amd64-linux.so)
+==1541480==    by 0x109E1C: test_large_batch_operations (test_memory_stress.c:168)
+==1541480==    by 0x10A240: run_isolated_test (test_isolation_manager.c:68)
+==1541480==    by 0x10A109: main (test_memory_stress.c:204)
+==1541480== 
+==1541480== 26,000 (400 direct, 25,600 indirect) bytes in 1 blocks are definitely lost in loss record 5 of 5
+==1541480==    at 0x4846828: malloc (in /usr/libexec/valgrind/vgpreload_memcheck-amd64-linux.so)
+==1541480==    by 0x109DDF: test_large_batch_operations (test_memory_stress.c:163)
+==1541480==    by 0x10A240: run_isolated_test (test_isolation_manager.c:68)
+==1541480==    by 0x10A109: main (test_memory_stress.c:204)
+==1541480== 
+==1541480== LEAK SUMMARY:
+==1541480==    definitely lost: 1,824 bytes in 3 blocks
+==1541480==    indirectly lost: 27,200 bytes in 100 blocks
+==1541480==      possibly lost: 0 bytes in 0 blocks
+==1541480==    still reachable: 0 bytes in 0 blocks
+==1541480==         suppressed: 0 bytes in 0 blocks
+==1541480== 
+==1541480== For lists of detected and suppressed errors, rerun with: -s
+==1541480== ERROR SUMMARY: 3 errors from 3 contexts (suppressed: 0 from 0)
