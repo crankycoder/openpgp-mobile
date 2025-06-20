@@ -1835,33 +1835,63 @@ Each PR must:
 
 ## Phase 8: Advanced Features
 
+### Overview
+Implement advanced features and comprehensive testing for the C binding library, focusing on edge cases, composite operations, and complete integration testing within the constraints of the current bridge implementation.
+
+### Bridge Limitations
+The current bridge does NOT support:
+- Multi-recipient encryption (only single public_key field)
+- Native combined sign-and-encrypt operations (but we can compose them)
+- Native combined decrypt-and-verify operations (but we can compose them)
+
 ### Tasks:
 
-1. **Add combined operations**
+1. **Task 8.1: Implement Composite Operations**
+   - `openpgp_sign_and_encrypt()` - Sign message then encrypt the signed data
+   - `openpgp_decrypt_and_verify()` - Decrypt then verify the signature
+   - Define SignAndEncryptResult and DecryptAndVerifyResult structs
+   - Convenience functions: encrypt-and-armor, dearmor-and-decrypt, etc.
+   - Helper functions: is_encrypted, is_signed, is_armored, validate_key_format
+   - Utility functions: generate_secure_passphrase, estimate_encrypted_size
 
-   - `openpgp_sign_and_encrypt()`
-   - `openpgp_decrypt_and_verify()`
-   - Multi-key operations
+2. **Task 8.2: Create Advanced Test Suite for Edge Cases**
+   - File: `/c/test/test_advanced.c`
+   - Test boundary conditions (empty data, max 3.5KB near FlatBuffer limit, Unicode)
+   - Test error handling for malformed inputs
+   - Test passphrase edge cases (empty, 1000+ chars, special chars)
+   - All edge cases handled gracefully with clear error messages
 
-2. **Create advanced tests**
+3. **Task 8.3: Create Comprehensive Integration Tests**
+   - File: `/c/test/test_integration.c`
+   - Complete workflow tests (Generate → Sign → Encrypt → Decrypt → Verify)
+   - Cross-operation compatibility tests
+   - Stress testing under valgrind (1000+ operations, zero leaks required)
+   - Error recovery and state consistency testing
 
-   - File: `/test/c/test_advanced.c`
-   - Test combined operations
-   - Test edge cases
+4. **Task 8.4: Performance Optimization [SKIPPED]**
+   - Performance benchmarking deferred to focus on functionality
 
-3. **Create integration tests**
+5. **Task 8.5: Add Large Data Support (Within Limits)**
+   - Document maximum safe sizes (~3.5KB per FlatBuffer operation)
+   - Implement chunking for files up to 10MB
+   - Create simulated streaming interface
+   - Test with 1MB, 5MB, 10MB files
+   - All large data tests must pass valgrind
 
-   - File: `/test/c/test_integration.c`
-   - Full workflow tests
-   - Interoperability tests
-   - Test complete workflows
-   - Verify all operations work together
+6. **Task 8.6: Create Advanced Examples and Documentation**
+   - `/c/examples/pgp_tool.c` - Command-line PGP tool
+   - `/c/examples/key_manager.c` - Key management utility
+   - `/c/examples/batch_processor.c` - Batch encryption tool
+   - Comprehensive documentation with troubleshooting guide
+   - Security considerations and memory management best practices
 
 ### Verification:
 
-- All workflows function correctly
-- No memory leaks in complex operations
-- Good performance
+- Composite sign-and-encrypt/decrypt-and-verify operations working
+- All edge cases handled gracefully
+- Stress tests pass valgrind with zero memory leaks
+- File operations support up to 10MB with proper chunking
+- Documentation complete with examples
 
 ## Phase 9: Documentation and Polish
 
