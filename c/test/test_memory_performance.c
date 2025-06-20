@@ -12,6 +12,15 @@
 #include <time.h>
 #include <sys/time.h>
 
+/* Helper macro to free error message and check result */
+#define CHECK_RESULT_AND_FREE(result, expected_error) do { \
+    if ((result).error_message) { \
+        free((result).error_message); \
+        (result).error_message = NULL; \
+    } \
+    TEST_ASSERT_EQUAL((expected_error), (result).error); \
+} while(0)
+
 #define BENCHMARK_ITERATIONS 1000
 #define PERFORMANCE_THRESHOLD_MS 100.0  // Max 100ms for 1000 operations
 
@@ -32,7 +41,7 @@ static int benchmark_size_validation_performance(void) {
     
     for (int i = 0; i < BENCHMARK_ITERATIONS; i++) {
         openpgp_result_t result = openpgp_encrypt_symmetric(test_message, password, NULL, NULL);
-        TEST_ASSERT(result.error == OPENPGP_ERROR_BRIDGE_CALL); // Expected bridge error
+        CHECK_RESULT_AND_FREE(result, OPENPGP_ERROR_BRIDGE_CALL); // Expected bridge error
     }
     
     double end_time = get_time_ms();
@@ -54,7 +63,7 @@ static int benchmark_size_validation_performance(void) {
     
     for (int i = 0; i < BENCHMARK_ITERATIONS; i++) {
         openpgp_result_t result = openpgp_encrypt_symmetric(NULL, "password", NULL, NULL);
-        TEST_ASSERT(result.error == OPENPGP_ERROR_INVALID_INPUT);
+        CHECK_RESULT_AND_FREE(result, OPENPGP_ERROR_INVALID_INPUT);
     }
     
     double end_time = get_time_ms();
@@ -83,7 +92,7 @@ static int benchmark_memory_allocation_patterns(void) {
             message[1023] = '\0';
             
             openpgp_result_t result = openpgp_encrypt_symmetric(message, "pass", NULL, NULL);
-            TEST_ASSERT(result.error == OPENPGP_ERROR_BRIDGE_CALL);
+            CHECK_RESULT_AND_FREE(result, OPENPGP_ERROR_BRIDGE_CALL);
             
             free(message);
         }
@@ -112,7 +121,7 @@ static int benchmark_memory_allocation_patterns(void) {
         large_data[2999] = '\0';
         
         openpgp_result_t result = openpgp_encrypt_symmetric(large_data, "pass", NULL, NULL);
-        TEST_ASSERT(result.error == OPENPGP_ERROR_SIZE_LIMIT);
+        CHECK_RESULT_AND_FREE(result, OPENPGP_ERROR_SIZE_LIMIT);
         
         free(large_data);
     }
@@ -141,7 +150,7 @@ static int benchmark_isolation_overhead(void) {
         reset_memory_tracking_state();
         
         openpgp_result_t result = openpgp_encrypt_symmetric("test", "pass", NULL, NULL);
-        TEST_ASSERT(result.error == OPENPGP_ERROR_BRIDGE_CALL);
+        CHECK_RESULT_AND_FREE(result, OPENPGP_ERROR_BRIDGE_CALL);
     }
     
     double end_time = get_time_ms();
