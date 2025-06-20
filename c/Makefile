@@ -95,6 +95,10 @@ $(BUILDDIR)/test_flatbuffer_memory: $(TESTDIR)/test_flatbuffer_memory.c $(TESTDI
 $(BUILDDIR)/test_serialize_request: $(TESTDIR)/test_serialize_request.c $(TESTDIR)/memory_helpers.c $(STATIC_LIB) $(LIBDIR)/libflatccrt.a
 	$(CC) $(CFLAGS) $(INCLUDES) -DDEBUG_MEMORY=1 -o $@ $^ -ldl
 
+# Serialize validation test executable
+$(BUILDDIR)/test_serialize_validation: $(TESTDIR)/test_serialize_validation.c $(TESTDIR)/memory_helpers.c $(STATIC_LIB) $(LIBDIR)/libflatccrt.a
+	$(CC) $(CFLAGS) $(INCLUDES) -DDEBUG_MEMORY=1 -o $@ $^ -ldl
+
 # Run memory tests
 test-memory: $(BUILDDIR)/test_flatbuffer_memory
 	@echo "Running FlatBuffer memory tests..."
@@ -104,6 +108,11 @@ test-memory: $(BUILDDIR)/test_flatbuffer_memory
 test-serialize: $(BUILDDIR)/test_serialize_request
 	@echo "Running serialize_generate_request tests..."
 	cd .. && LD_LIBRARY_PATH=output/binding:$$LD_LIBRARY_PATH ./c/$(BUILDDIR)/test_serialize_request
+
+# Run serialize validation tests
+test-serialize-validation: $(BUILDDIR)/test_serialize_validation
+	@echo "Running serialize_generate_request validation tests..."
+	cd .. && LD_LIBRARY_PATH=output/binding:$$LD_LIBRARY_PATH ./c/$(BUILDDIR)/test_serialize_validation
 
 # Run memory tests with valgrind
 test-memory-valgrind: $(BUILDDIR)/test_flatbuffer_memory
