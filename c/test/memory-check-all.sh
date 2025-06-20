@@ -159,7 +159,8 @@ EOF
             echo "| $test_name | $status | $issues |" >> "$REPORT_FILE"
         fi
     done
-}    cat >> "$REPORT_FILE" << EOF
+    
+    cat >> "$REPORT_FILE" << EOF
 
 ## Detailed Analysis
 
