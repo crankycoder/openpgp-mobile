@@ -162,4 +162,25 @@ install: all
 generate:
 	$(MAKE) -C .. flatbuffers_c_wrapper
 
-.PHONY: all directories test clean distclean install generate test-memory test-memory-valgrind test-debug test-minimal test-all-debug
+# Valgrind testing targets
+valgrind: test
+	@echo "Running all tests under valgrind..."
+	cd test && ./valgrind_all_tests.sh
+
+valgrind-single: test
+	@if [ -z "$(TEST)" ]; then \
+		echo "Usage: make valgrind-single TEST=test_name"; \
+		exit 1; \
+	fi
+	@echo "Running $(TEST) under valgrind..."
+	cd test && ./valgrind_all_tests.sh --test $(TEST)
+
+valgrind-clean:
+	@echo "Cleaning valgrind logs..."
+	cd test && ./valgrind_all_tests.sh --clean
+
+valgrind-summary:
+	@echo "Showing latest valgrind summary..."
+	cd test && ./valgrind_all_tests.sh --show-logs
+
+.PHONY: all directories test clean distclean install generate test-memory test-memory-valgrind test-debug test-minimal test-all-debug valgrind valgrind-single valgrind-clean valgrind-summary
