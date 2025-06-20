@@ -1,0 +1,12 @@
+Command: valgrind --leak-check=full --show-leak-kinds=all --track-origins=yes --error-exitcode=1 --suppressions=/home/vng/dev/openpgp-mobile/c/test/valgrind.supp c/build/test_flatbuffer_memory
+Timestamp: Thu Jun 19 11:58:36 PM EDT 2025
+========================
+==1366190== Memcheck, a memory error detector
+==1366190== Copyright (C) 2002-2022, and GNU GPL'd, by Julian Seward et al.
+==1366190== Using Valgrind-3.22.0 and LibVEX; rerun with -h for copyright info
+==1366190== Command: c/build/test_flatbuffer_memory
+==1366190== 
+location should be "...", or should start with "fun:", "obj:", or "src:"
+==1366190== FATAL: in suppressions file "/home/vng/dev/openpgp-mobile/c/test/valgrind.supp" near line 59:
+==1366190==    location should be "...", or should start with "fun:", "obj:", or "src:"
+==1366190== exiting now.
