@@ -1072,256 +1072,6 @@ This phase systematically eliminated critical FlatBuffer-related memory issues:
 - Fixed buffer overruns in FlatBuffer serialization
 - Fixed test isolation failures
 - Discovered and documented FlatCC size limitations affecting large RSA keys
-      // EXPECT: No memory leaks
-      // Create builder
-      // Get buffer (don't use it)
-      // Destroy builder
-      // Valgrind: 0 bytes lost
-  }
-  ```
-
-- **Implementation fixes**: Fix any leaks in basic lifecycle
-- **Acceptance Criteria**:
-  - Zero memory leaks in basic operations
-  - Clear documentation of proper usage pattern
-
-#### Task 7.6.3: Test serialize_generate_request Buffer Management
-
-- **Status**: 📋 PLANNED
-- **Description**: Fix buffer overrun in serialize_generate_request
-- **TDD Tests**:
-
-  ```c
-  void test_serialize_generate_minimal_request() {
-      // EXPECT: No buffer overrun
-      // Create minimal request (empty strings)
-      // Verify buffer bounds
-      // Valgrind: No invalid reads/writes
-  }
-
-  void test_serialize_generate_max_size_request() {
-      // EXPECT: Proper buffer sizing
-      // Create request with maximum field sizes
-      // Verify buffer is large enough
-      // Valgrind: No buffer overruns
-  }
-  ```
-
-- **Root cause**: Likely incorrect buffer size calculation
-- **Implementation fixes**:
-  - Audit buffer size calculations
-  - Add bounds checking
-  - Use proper FlatBuffer size APIs
-- **Acceptance Criteria**:
-  - No buffer overruns with any input size
-  - Proper error handling for oversized inputs
-
-#### Task 7.6.4: Test FlatBuffer String Handling
-
-- **Status**: 📋 PLANNED
-- **Description**: Strings are common source of buffer issues
-- **TDD Tests**:
-
-  ```c
-  void test_empty_string_handling() {
-      // EXPECT: Proper handling of NULL and ""
-      // Test NULL vs empty string behavior
-      // Verify no overreads
-  }
-
-  void test_long_string_handling() {
-      // EXPECT: Correct buffer allocation
-      // Test with 1KB, 10KB, 100KB strings
-      // Verify proper memory allocation
-  }
-
-  void test_unicode_string_handling() {
-      // EXPECT: Correct UTF-8 handling
-      // Test with multi-byte characters
-      // Verify no buffer miscalculations
-  }
-  ```
-
-- **Implementation fixes**: Fix string serialization issues
-- **Acceptance Criteria**:
-  - All string types handled correctly
-  - No memory leaks with any string input
-
-#### Task 7.6.5: Test Nested FlatBuffer Structures
-
-- **Status**: 📋 PLANNED
-- **Description**: Test complex nested structures (Options, KeyOptions, etc.)
-- **TDD Tests**:
-
-  ```c
-  void test_nested_options_no_leak() {
-      // EXPECT: Proper cleanup of nested structures
-      // Create Options with KeyOptions
-      // Verify all memory freed
-  }
-
-  void test_optional_fields_memory() {
-      // EXPECT: Optional fields don't leak
-      // Test with various NULL fields
-      // Verify proper handling
-  }
-  ```
-
-- **Implementation fixes**: Fix nested structure memory management
-- **Acceptance Criteria**:
-  - Complex structures serialize without leaks
-  - Optional fields handled correctly
-
-#### Task 7.6.6: Test FlatBuffer Response Parsing Memory
-
-- **Status**: 📋 PLANNED
-- **Description**: Test deserialization doesn't leak memory
-- **TDD Tests**:
-
-  ```c
-  void test_parse_response_no_leak() {
-      // EXPECT: Parsing doesn't leak
-      // Create mock response buffer
-      // Parse it multiple times
-      // Verify no accumulating leaks
-  }
-
-  void test_parse_error_response_cleanup() {
-      // EXPECT: Error paths clean up properly
-      // Parse malformed response
-      // Verify error handling frees memory
-  }
-  ```
-
-- **Implementation fixes**: Fix response parsing leaks
-- **Acceptance Criteria**:
-  - Response parsing has zero leaks
-  - Error paths properly clean up
-
-#### Task 7.6.7: Test Cross-Test Memory Isolation
-
-- **Status**: 📋 PLANNED
-- **Description**: Fix test interference issues
-- **TDD Tests**:
-
-  ```c
-  void test_sequential_operations_isolated() {
-      // EXPECT: No state leakage between operations
-      // Run operation A
-      // Verify clean state
-      // Run operation B
-      // Verify no corruption from A
-  }
-
-  void test_builder_reuse_safety() {
-      // EXPECT: Clear errors on reuse
-      // Test that builders can't be reused
-      // Verify clear error messages
-  }
-  ```
-
-- **Implementation fixes**:
-  - Add state reset between tests
-  - Ensure proper cleanup in all paths
-- **Acceptance Criteria**:
-  - Tests don't interfere with each other
-  - Clear isolation boundaries
-
-#### Task 7.6.8: Fix flatcc_builder_end_buffer Corruption
-
-- **Status**: 📋 PLANNED
-- **Description**: Address specific corruption in end_buffer operations
-- **TDD Tests**:
-
-  ```c
-  void test_end_buffer_valid_state() {
-      // EXPECT: Valid buffer after end
-      // Build complete buffer
-      // Call end_buffer
-      // Verify buffer validity
-      // Check memory bounds
-  }
-
-  void test_end_buffer_error_cases() {
-      // EXPECT: Graceful error handling
-      // Call end on invalid builder
-      // Call end twice
-      // Verify no corruption
-  }
-  ```
-
-- **Root cause investigation**:
-  - Check if builder is in valid state before end
-  - Verify proper finalization sequence
-  - Check for double-free issues
-- **Acceptance Criteria**:
-  - No corruption in end_buffer
-  - Clear error handling
-
-#### Task 7.6.9: Create Memory Regression Test Suite
-
-- **Status**: 📋 PLANNED
-- **Description**: Comprehensive tests to prevent regressions
-- **Tests to add**:
-  - Full operation memory tests (generate, encrypt, sign, etc.)
-  - Stress tests with repeated operations
-  - Random input fuzzing tests
-  - Valgrind automation in CI
-- **Acceptance Criteria**:
-  - All operations pass valgrind checks
-  - CI automatically runs memory tests
-  - Clear memory usage documentation
-
-### Implementation Guidelines
-
-1. **TDD Process for Each Task**:
-
-   - Write failing test that exposes the memory issue
-   - Run under valgrind to confirm the issue
-   - Implement minimal fix to pass the test
-   - Refactor if needed while keeping tests green
-   - Document the fix and root cause
-
-2. **Valgrind Configuration**:
-
-   ```bash
-   valgrind --leak-check=full \
-            --show-leak-kinds=all \
-            --track-origins=yes \
-            --error-exitcode=1 \
-            --suppressions=valgrind.supp \
-            ./test_program
-   ```
-
-3. **Memory Debugging Tools**:
-
-   - Use AddressSanitizer for development
-   - Use Valgrind for thorough analysis
-   - Add memory usage tracking to tests
-   - Create heap profiling helpers
-
-4. **Fix Verification**:
-   - Each fix must pass individual test
-   - Each fix must pass full test suite
-   - Each fix must pass valgrind with zero errors
-   - Document memory ownership clearly
-
-### Success Criteria
-
-- Zero valgrind errors in all tests
-- No memory leaks detected
-- No buffer overruns or underruns
-- Clear memory management documentation
-- Automated memory testing in CI
-- Performance impact < 5%
-
-**Phase 7.6 Status**: ✅ COMPLETED
-
-This phase systematically eliminated critical FlatBuffer-related memory issues:
-- Fixed memory leaks in error handling paths
-- Fixed buffer overruns in FlatBuffer serialization
-- Fixed test isolation failures
-- Discovered and documented FlatCC size limitations affecting large RSA keys
 
 ## Phase 7.7: Comprehensive Valgrind Error Detection and Fixes 🔧 IN PROGRESS
 
@@ -1559,9 +1309,468 @@ Each test file will be run individually with valgrind to ensure complete isolati
 3. **Long-term**: Maintainable codebase with clear patterns
 4. **Knowledge**: Documented patterns prevent future issues
 
-**Phase 7.7 Status**: 📋 PLANNED
+**Phase 7.7 Status**: 🔧 IN PROGRESS
 
 This phase will ensure production-ready memory safety across the entire C binding.
+
+   - Create `.pc` file for system installation
+   - Update Makefile for installation
+
+3. **Create more examples**
+
+   - Error handling examples
+   - Memory management examples
+   - Real-world use cases
+
+4. **Performance optimization**
+   - Profile and optimize hot paths
+   - Minimize memory allocations
+
+### Verification:
+
+- Documentation is complete and accurate
+- Examples cover all use cases
+- Library is production-ready
+
+## Testing Strategy
+
+Each phase includes:
+
+1. **Unit tests**: Test individual functions
+2. **Integration tests**: Test workflows
+3. **Memory tests**: Valgrind/AddressSanitizer
+4. **Compatibility tests**: Verify against Go implementation
+
+## Success Criteria
+
+Each PR must:
+
+1. Pass all tests (C and existing Go tests)
+2. Have no memory leaks
+3. Include documentation updates
+4. Include at least one example
+5. Be backwards compatible
+
+## Implementation Notes
+
+### Architecture
+
+- C wrapper provides user-friendly API
+- FlatBuffers handle serialization to/from Go bridge
+- No direct Go/C interop except through OpenPGPBridgeCall
+- C library can be distributed independently
+
+### Memory Management
+
+- User allocates C structures
+- Library allocates internal FlatBuffer data
+- Clear ownership rules (user vs library)
+- Provide cleanup functions for all allocated data
+
+### Error Handling
+
+- All functions return openpgp_result_t
+- Detailed error messages from Go bridge
+- Never crash on bad input
+- Validate inputs before serialization
+
+### FlatBuffer Usage
+
+- Generate C headers from .fbs files
+- Use FlatBuffer builders for requests
+- Parse FlatBuffer responses
+- Handle buffer lifecycle carefully
+
+### Build System
+
+- C library builds separately from Go
+- Links against libopenpgp_bridge.so at runtime
+- Support static and dynamic linking of C wrapper
+- Cross-platform Makefile
+
+## Detailed Microtasks for Agentic Implementation
+
+### Phase 0 Microtasks
+
+#### Task 0.1: Create C Library Structure
+
+```
+1. Create directory /c/
+2. Create directory /c/include/
+3. Create directory /c/src/
+4. Create directory /c/test/
+5. Create directory /c/examples/
+6. Create /c/Makefile with basic structure
+7. Create /c/README.md documenting the C API
+```
+
+#### Task 0.2: Generate FlatBuffers C Headers
+
+```
+1. Install flatc compiler if not present
+2. Update Makefile.flatbuffers to add C generation target
+3. Run: flatc --c -o c/generated flatbuffers/bridge.fbs
+4. Verify C headers are generated correctly
+5. Add generated files to .gitignore
+6. Test that generated headers compile
+```
+
+#### Task 0.3: Create Base C API Header
+
+```
+1. Create file /c/include/openpgp.h
+2. Add header guards and extern "C"
+3. Define openpgp_error_t enumeration
+4. Define openpgp_result_t structure (success/error)
+5. Define memory management functions
+6. Add version macros
+7. Document all public APIs
+```
+
+#### Task 0.4: Create C Wrapper Implementation
+
+```
+1. Create file /c/src/openpgp.c
+2. Include necessary headers (FlatBuffers, binding header)
+3. Implement openpgp_init() and openpgp_cleanup()
+4. Create helper: serialize_to_flatbuffer()
+5. Create helper: deserialize_from_flatbuffer()
+6. Implement basic error handling
+7. Link against libopenpgp_bridge.so
+```
+
+#### Task 0.5: Set Up C Testing
+
+```
+1. Create file /c/test/test_framework.h
+2. Create simple TEST macro
+3. Create file /c/test/test_runner.c
+4. Create file /c/test/test_basic.c
+5. Test library initialization
+6. Test error handling
+7. Add test target to Makefile
+```
+
+### Phase 1 Microtasks
+
+#### Task 1.1: Define Key Generation Structures
+
+```
+1. Open /include/openpgp/openpgp.h
+2. Define Options struct with email, name, comment, passphrase
+3. Define KeyOptions struct with all algorithm parameters
+4. Define KeyPair struct with publicKey and privateKey fields
+5. Add key algorithm enums (RSA, ECDSA, EdDSA)
+6. Add curve type enums for ECC
+```
+
+#### Task 1.2: Add Key Generation Function Declarations
+
+```
+1. Add openpgp_generate_key() declaration
+2. Add openpgp_generate_key_with_options() declaration
+3. Add openpgp_free_keypair() for memory cleanup
+4. Add documentation comments for each function
+5. Define default options constants
+```
+
+#### Task 1.3: Create Key Generation Test File
+
+```
+1. Create file /test/c/test_generate.c
+2. Include necessary headers
+3. Create test data structure with expected key properties
+4. Import test constants from Go tests (key sizes, algorithms)
+```
+
+#### Task 1.4: Write Basic RSA Generation Test
+
+```
+1. Write TEST_CASE(test_generate_rsa_2048)
+2. Set up Options with basic email/name
+3. Set KeyOptions for 2048-bit RSA
+4. Call openpgp_generate_key_with_options()
+5. Assert result is not null
+6. Assert no error occurred
+7. Assert public key starts with "-----BEGIN PGP PUBLIC KEY BLOCK-----"
+8. Assert private key starts with "-----BEGIN PGP PRIVATE KEY BLOCK-----"
+9. Free the keypair
+```
+
+#### Task 1.5: Implement Key Generation in Binding
+
+```
+1. Open /binding/main.go
+2. Add C function export for OpenPGPGenerateKey
+3. Create Go Options struct from C data
+4. Call openpgp.Generate()
+5. Marshal KeyPair result to C structure
+6. Handle errors appropriately
+7. Test compilation
+```
+
+#### Task 1.6: Write Passphrase-Protected Key Test
+
+```
+1. Write TEST_CASE(test_generate_with_passphrase)
+2. Set passphrase in Options
+3. Generate key
+4. Verify key is encrypted (contains "ENCRYPTED" in private key)
+5. Save key for use in later decrypt tests
+```
+
+#### Task 1.7: Write ECC Key Generation Tests
+
+```
+1. Write TEST_CASE(test_generate_ecdsa_p256)
+2. Write TEST_CASE(test_generate_eddsa)
+3. Set appropriate algorithm and curve options
+4. Verify generated keys are correct type
+5. Check key metadata to confirm algorithm
+```
+
+### Phase 2 Microtasks
+
+#### Task 2.1: Define Metadata Structures
+
+```
+1. Open /c/include/openpgp.h
+2. Define KeyMetadata struct (C-friendly, not FlatBuffer)
+3. Add fields: keyId, fingerprint, algorithm, bitSize
+4. Add fields: createdAt, canSign, canEncrypt
+5. Define metadata extraction function declarations
+```
+
+#### Task 2.2: Create Conversion Test File
+
+```
+1. Create file /c/test/test_convert.c
+2. Import test keys from Go test files
+3. Create helper to load PEM keys from strings
+4. Write test for basic conversion
+5. Write test comparing with expected public key
+```
+
+#### Task 2.3: Implement FlatBuffer Conversion
+
+```
+1. Open /c/src/openpgp.c
+2. Check bridge.fbs for ConvertRequest message structure
+3. Create flatbuffers_builder_t *B
+4. Build model_ConvertRequest_create(B, private_key_ref)
+5. Call OpenPGPBridgeCall("convert", buffer, size)
+6. Parse response using model_KeyResponse
+7. Extract public key string and return
+8. Handle all error cases
+```
+
+#### Task 2.4: Implement FlatBuffer Metadata Extraction
+
+```
+1. Check bridge.fbs for KeyMetadataRequest structure
+2. Create model_KeyMetadataRequest_create(B, key_ref)
+3. Call OpenPGPBridgeCall("metadata", buffer, size)
+4. Parse model_KeyMetadataResponse
+5. Convert FlatBuffer metadata to C KeyMetadata struct
+6. Handle memory allocation for strings
+7. Implement proper cleanup functions
+```
+
+### Execution Guidelines for Agent
+
+1. **Always run tests after implementation**
+
+   - Run `make test` after each implementation
+   - Include binding tests in the standard test suite
+   - Check for memory leaks and race conditions
+
+2. **Follow repository conventions**
+
+   - C exports: `OpenPGPFunctionName` (following existing pattern)
+   - Go functions follow Go conventions
+   - Maintain consistency with existing code
+
+3. **Maintain compatibility**
+
+   - Ensure binding works on all supported platforms
+   - Test cross-compilation for each platform
+   - Verify generated headers are portable
+
+4. **Document in code**
+
+   - Add clear comments to exported functions
+   - These comments appear in generated header
+   - Include usage examples in comments
+
+5. **Commit atomically**
+   - One microtask = one commit
+   - Clear commit messages
+   - Follow existing commit message patterns
+  - Reproducible test cases for each issue
+
+#### Task 7.7.3: Fix Memory Leaks in Error Paths
+
+- **Status**: 📋 PLANNED
+- **Description**: Apply Phase 7.6 pattern fixes across all functions
+- **Pattern to fix**:
+  ```c
+  // BEFORE (leaks on error):
+  openpgp_result_t result = some_operation();
+  if (result.error != OPENPGP_SUCCESS) {
+      return result; // LEAK: result.error_message not freed
+  }
+  
+  // AFTER (no leak):
+  openpgp_result_t result = some_operation();
+  if (result.error != OPENPGP_SUCCESS) {
+      // Handle error
+      if (result.error_message) {
+          free(result.error_message);
+      }
+      return create_error_result(result.error, "Operation failed");
+  }
+  ```
+- **Functions to audit**:
+  - All functions returning `openpgp_result_t`
+  - All error handling paths
+  - All early returns
+- **Acceptance Criteria**:
+  - Zero leaks in error paths
+  - Consistent error handling pattern
+  - Helper functions for common patterns
+
+#### Task 7.7.4: Fix Buffer Management in Serialization
+
+- **Status**: 📋 PLANNED
+- **Description**: Add null checks and size validation for all buffer operations
+- **Pattern to fix**:
+  ```c
+  // BEFORE (crashes on NULL):
+  void *buffer = flatcc_builder_get_direct_buffer(B, &size);
+  memcpy(dest, buffer, size); // CRASH if buffer is NULL
+  
+  // AFTER (safe):
+  void *buffer = flatcc_builder_get_direct_buffer(B, &size);
+  if (!buffer || size == 0) {
+      flatcc_builder_clear(B);
+      return create_error_result(OPENPGP_ERROR_SERIALIZATION, 
+                                "Buffer allocation failed");
+  }
+  memcpy(dest, buffer, size);
+  ```
+- **Functions to fix**:
+  - All `serialize_*` functions
+  - All `flatcc_builder_get_direct_buffer` calls
+  - All `memcpy` operations
+- **Acceptance Criteria**:
+  - All buffer operations have null checks
+  - Size limits are validated before operations
+  - Clear error messages for failures
+
+#### Task 7.7.5: Add Comprehensive Return Value Checking
+
+- **Status**: 📋 PLANNED
+- **Description**: Ensure all library function returns are checked
+- **Functions to audit**:
+  - `malloc/calloc/realloc` - Check for NULL
+  - `strdup/strndup` - Check for NULL
+  - `flatcc_builder_*` - Check return codes
+  - `model_*_create` - Check for failures
+  - File operations - Check for errors
+- **Acceptance Criteria**:
+  - No unchecked function calls
+  - Appropriate error handling for each failure
+  - No silent failures
+
+#### Task 7.7.6: Implement Test Isolation
+
+- **Status**: 📋 PLANNED
+- **Description**: Ensure tests don't interfere with each other
+- **Implementation**:
+  - Reset global state between tests
+  - Clear memory tracking between tests
+  - Separate test processes for isolation
+  - Clean environment for each test
+- **Acceptance Criteria**:
+  - Tests pass regardless of execution order
+  - No shared state between tests
+  - Memory tracking is accurate per test
+
+#### Task 7.7.7: Add Size Validation and Limits
+
+- **Status**: 📋 PLANNED
+- **Description**: Prevent silent failures from size limits
+- **Implementation**:
+  ```c
+  #define MAX_FLATBUFFER_SIZE (4 * 1024) // 4KB limit
+  
+  if (estimated_size > MAX_FLATBUFFER_SIZE) {
+      return create_error_result(OPENPGP_ERROR_SIZE_LIMIT,
+                                "Data too large for serialization");
+  }
+  ```
+- **Areas to add validation**:
+  - Key generation (large key comments)
+  - Encryption (large messages)
+  - Signing (large data)
+  - All FlatBuffer operations
+- **Acceptance Criteria**:
+  - Size limits clearly defined
+  - Validation before operations
+  - Clear error messages
+  - Documentation of limits
+
+#### Task 7.7.8: Create Memory Regression Suite
+
+- **Status**: 📋 PLANNED
+- **Description**: Automated tests to prevent memory issue regressions
+- **Test suite components**:
+  - `test_memory_error_paths.c` - Test all error scenarios
+  - `test_memory_large_data.c` - Test size limits
+  - `test_memory_stress.c` - Repeated operations
+  - `test_memory_edge_cases.c` - Boundary conditions
+  - `valgrind-ci.yml` - CI integration
+- **Acceptance Criteria**:
+  - Comprehensive coverage of known issues
+  - Runs automatically in CI
+  - Fails build on any memory error
+  - Performance benchmarks included
+
+#### Task 7.7.9: Document Memory Management Best Practices
+
+- **Status**: 📋 PLANNED
+- **Description**: Create comprehensive memory management documentation
+- **Documentation to create**:
+  - Memory ownership rules
+  - Common pitfalls and solutions
+  - Valgrind usage guide
+  - Size limit documentation
+  - Error handling patterns
+- **Acceptance Criteria**:
+  - Clear guidelines for developers
+  - Examples of correct patterns
+  - Troubleshooting guide
+  - Integration with main docs
+
+### Implementation Order
+
+1. **Infrastructure First** (Task 1): Set up valgrind automation
+2. **Discovery** (Task 2): Run all tests to find issues
+3. **Common Patterns** (Tasks 3-5): Fix widespread issues
+4. **Isolation** (Task 6): Ensure test reliability
+5. **Prevention** (Tasks 7-8): Add validation and regression tests
+6. **Documentation** (Task 9): Capture knowledge
+
+### Success Criteria
+
+- **Zero valgrind errors** in all test files
+- **Zero memory leaks** in all operations
+- **No buffer overruns** or invalid memory access
+- **Clear error messages** for all failure cases
+- **Automated CI checks** preventing regressions
+- **Comprehensive documentation** of patterns and fixes
+
+### Expected Outcomes
 
 ## Phase 8: Advanced Features
 
@@ -1584,9 +1793,7 @@ This phase will ensure production-ready memory safety across the entire C bindin
    - File: `/test/c/test_integration.c`
    - Full workflow tests
    - Interoperability tests
-
-4. **Create integration tests**
-   - Test complete workflows in Go
+   - Test complete workflows
    - Verify all operations work together
 
 ### Verification:
