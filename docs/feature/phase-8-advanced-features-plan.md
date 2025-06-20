@@ -6,10 +6,11 @@ Implement advanced features and comprehensive testing for the C binding library,
 ## Bridge Limitations
 The current bridge does NOT support:
 - Multi-recipient encryption (only single public_key field)
-- Combined sign-and-encrypt operations
-- Combined decrypt-and-verify operations
+- Native combined sign-and-encrypt operations (but we can compose them)
+- Native combined decrypt-and-verify operations (but we can compose them)
 
 ## Success Criteria
+- [ ] Composite sign-and-encrypt/decrypt-and-verify operations implemented
 - [ ] Comprehensive edge case testing for all existing operations
 - [ ] Performance benchmarks established for all operations
 - [ ] Integration tests verify all operations work together
@@ -80,12 +81,27 @@ The current bridge does NOT support:
 - [ ] Memory usage stays within reasonable bounds
 - [ ] No performance regressions
 
-### Task 8.3: Implement Convenience Functions
-**Priority**: Medium
-**Estimated Time**: 3 hours
+### Task 8.3: Implement Composite Operations
+**Priority**: High
+**Estimated Time**: 4 hours
 
 #### Subtasks:
-1. [ ] Add convenience functions that combine existing operations:
+1. [ ] Add composite sign-and-encrypt operations:
+   - [ ] `openpgp_sign_and_encrypt()` - Sign message then encrypt the signed data
+   - [ ] `openpgp_decrypt_and_verify()` - Decrypt then verify the signature
+   - [ ] Define SignAndEncryptResult and DecryptAndVerifyResult structs
+   - [ ] Handle proper cleanup for intermediate data
+   - [ ] Implementation approach:
+     ```c
+     // Sign-and-encrypt: 
+     // 1. Sign the message with private key
+     // 2. Encrypt the signed message with recipient's public key
+     
+     // Decrypt-and-verify:
+     // 1. Decrypt with private key to get signed message
+     // 2. Verify signature with sender's public key
+     ```
+2. [ ] Add convenience functions that combine existing operations:
    - [ ] `openpgp_encrypt_and_armor()` - Encrypt then armor encode
    - [ ] `openpgp_dearmor_and_decrypt()` - Dearmor then decrypt
    - [ ] `openpgp_sign_and_armor()` - Sign then armor encode
@@ -114,6 +130,7 @@ The current bridge does NOT support:
 1. [ ] Create `/c/test/test_integration.c` for workflow testing
 2. [ ] Implement complete workflow tests:
    - [ ] Generate → Export → Import → Use cycle
+   - [ ] Sign → Encrypt → Decrypt → Verify (composite operations)
    - [ ] Encrypt → Armor → Dearmor → Decrypt
    - [ ] Sign → Armor → Dearmor → Verify
    - [ ] Generate multiple key types → Use in operations
@@ -193,10 +210,10 @@ The current bridge does NOT support:
 - [ ] Troubleshooting guide covers real issues
 
 ## Implementation Order
-1. Task 8.1: Edge case testing (foundation for robustness)
-2. Task 8.2: Performance optimization (establish baselines)
-3. Task 8.4: Integration tests (verify interoperability)
-4. Task 8.3: Convenience functions (enhance usability)
+1. Task 8.3: Composite operations (high-value feature)
+2. Task 8.1: Edge case testing (foundation for robustness)
+3. Task 8.4: Integration tests (verify composite operations work)
+4. Task 8.2: Performance optimization (establish baselines)
 5. Task 8.5: Large data support (push the boundaries)
 6. Task 8.6: Documentation (capture all knowledge)
 
