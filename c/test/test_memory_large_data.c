@@ -20,7 +20,7 @@ static int test_message_size_boundaries(void) {
     small_msg[2046] = '\0';
     
     openpgp_result_t result = openpgp_encrypt_symmetric(small_msg, "password123", NULL, NULL);
-    TEST_ASSERT(result == OPENPGP_ERROR_BRIDGE_CALL); // Expected bridge error, not size error
+    TEST_ASSERT(result.error == OPENPGP_ERROR_BRIDGE_CALL); // Expected bridge error, not size error
     
     free(small_msg);
     
@@ -30,7 +30,7 @@ static int test_message_size_boundaries(void) {
     exact_msg[2048] = '\0';
     
     result = openpgp_encrypt_symmetric(exact_msg, "password123", NULL, NULL);
-    TEST_ASSERT(result == OPENPGP_ERROR_BRIDGE_CALL); // Expected bridge error, not size error
+    TEST_ASSERT(result.error == OPENPGP_ERROR_BRIDGE_CALL); // Expected bridge error, not size error
     
     free(exact_msg);
     
@@ -40,7 +40,7 @@ static int test_message_size_boundaries(void) {
     large_msg[2049] = '\0';
     
     result = openpgp_encrypt_symmetric(large_msg, "password123", NULL, NULL);
-    TEST_ASSERT(result == OPENPGP_ERROR_SIZE_LIMIT); // Should fail with size limit error
+    TEST_ASSERT(result.error == OPENPGP_ERROR_SIZE_LIMIT); // Should fail with size limit error
     
     free(large_msg);
     
@@ -55,7 +55,7 @@ static int test_message_size_boundaries(void) {
     small_data[3070] = '\0';
     
     openpgp_result_t result = openpgp_sign(small_data, "test_key", NULL, NULL);
-    TEST_ASSERT(result == OPENPGP_ERROR_BRIDGE_CALL); // Expected bridge error, not size error
+    TEST_ASSERT(result.error == OPENPGP_ERROR_BRIDGE_CALL); // Expected bridge error, not size error
     
     free(small_data);
     
@@ -65,7 +65,7 @@ static int test_message_size_boundaries(void) {
     exact_data[3072] = '\0';
     
     result = openpgp_sign(exact_data, "test_key", NULL, NULL);
-    TEST_ASSERT(result == OPENPGP_ERROR_BRIDGE_CALL); // Expected bridge error, not size error
+    TEST_ASSERT(result.error == OPENPGP_ERROR_BRIDGE_CALL); // Expected bridge error, not size error
     
     free(exact_data);
     
@@ -75,7 +75,7 @@ static int test_message_size_boundaries(void) {
     large_data[3073] = '\0';
     
     result = openpgp_sign(large_data, "test_key", NULL, NULL);
-    TEST_ASSERT(result == OPENPGP_ERROR_SIZE_LIMIT); // Should fail with size limit error
+    TEST_ASSERT(result.error == OPENPGP_ERROR_SIZE_LIMIT); // Should fail with size limit error
     
     free(large_data);
     
@@ -83,16 +83,16 @@ static int test_message_size_boundaries(void) {
     return 0;
 }
 
-static int test_key_comment_boundaries(void) {
-    printf("Testing key comment size boundaries...\n");
+static int test_key_parameter_boundaries(void) {
+    printf("Testing key parameter size boundaries...\n");
     
     // Test just under 512B limit
     char *small_comment = malloc(511);
     memset(small_comment, 'K', 510);
     small_comment[510] = '\0';
     
-    openpgp_result_t result = openpgp_generate_key("rsa", 2048, small_comment, NULL, NULL);
-    TEST_ASSERT(result == OPENPGP_ERROR_BRIDGE_CALL); // Expected bridge error, not size error
+    openpgp_result_t result = openpgp_generate_key(small_comment, "test@example.com", "password");
+    TEST_ASSERT(result.error == OPENPGP_ERROR_BRIDGE_CALL); // Expected bridge error, not size error
     
     free(small_comment);
     
@@ -101,20 +101,20 @@ static int test_key_comment_boundaries(void) {
     memset(exact_comment, 'L', 512);
     exact_comment[512] = '\0';
     
-    result = openpgp_generate_key("rsa", 2048, exact_comment, NULL, NULL);
-    TEST_ASSERT(result == OPENPGP_ERROR_BRIDGE_CALL); // Expected bridge error, not size error
+    result = openpgp_generate_key(exact_comment, "test@example.com", "password");
+    TEST_ASSERT(result.error == OPENPGP_ERROR_BRIDGE_CALL); // Expected bridge error, not size error
     
     free(exact_comment);    // Test just over 512B limit (should fail with size error)
     char *large_comment = malloc(514);
     memset(large_comment, 'M', 513);
     large_comment[513] = '\0';
     
-    result = openpgp_generate_key("rsa", 2048, large_comment, NULL, NULL);
-    TEST_ASSERT(result == OPENPGP_ERROR_SIZE_LIMIT); // Should fail with size limit error
+    result = openpgp_generate_key(large_comment, "test@example.com", "password");
+    TEST_ASSERT(result.error == OPENPGP_ERROR_SIZE_LIMIT); // Should fail with size limit error
     
     free(large_comment);
     
-    printf("Key comment size boundary tests passed\n");
+    printf("Key parameter size boundary tests passed\n");
     return 0;
 }
 
@@ -127,7 +127,7 @@ static int test_flatbuffer_size_boundaries(void) {
     huge_msg[4096] = '\0';
     
     openpgp_result_t result = openpgp_encrypt_symmetric(huge_msg, "password123", NULL, NULL);
-    TEST_ASSERT(result == OPENPGP_ERROR_SIZE_LIMIT); // Should fail due to FlatBuffer size
+    TEST_ASSERT(result.error == OPENPGP_ERROR_SIZE_LIMIT); // Should fail due to FlatBuffer size
     
     free(huge_msg);
     
@@ -137,7 +137,7 @@ static int test_flatbuffer_size_boundaries(void) {
     huge_data[4096] = '\0';
     
     result = openpgp_sign(huge_data, "test_key", NULL, NULL);
-    TEST_ASSERT(result == OPENPGP_ERROR_SIZE_LIMIT); // Should fail due to FlatBuffer size
+    TEST_ASSERT(result.error == OPENPGP_ERROR_SIZE_LIMIT); // Should fail due to FlatBuffer size
     
     free(huge_data);
     
@@ -155,7 +155,7 @@ static int test_memory_allocation_patterns(void) {
         msg[1023] = '\0';
         
         openpgp_result_t result = openpgp_encrypt_symmetric(msg, "test", NULL, NULL);
-        TEST_ASSERT(result == OPENPGP_ERROR_BRIDGE_CALL); // Expected bridge error
+        TEST_ASSERT(result.error == OPENPGP_ERROR_BRIDGE_CALL); // Expected bridge error
         
         free(msg);
     }    // Test gradual size increase to find exact breaking point
@@ -167,9 +167,9 @@ static int test_memory_allocation_patterns(void) {
         openpgp_result_t result = openpgp_encrypt_symmetric(msg, "test", NULL, NULL);
         
         if (size <= 2048) {
-            TEST_ASSERT(result == OPENPGP_ERROR_BRIDGE_CALL); // Should succeed size validation
+            TEST_ASSERT(result.error == OPENPGP_ERROR_BRIDGE_CALL); // Should succeed size validation
         } else {
-            TEST_ASSERT(result == OPENPGP_ERROR_SIZE_LIMIT); // Should fail size validation
+            TEST_ASSERT(result.error == OPENPGP_ERROR_SIZE_LIMIT); // Should fail size validation
         }
         
         free(msg);
@@ -199,9 +199,9 @@ static int test_concurrent_size_validation(void) {
     openpgp_result_t result2 = openpgp_encrypt_symmetric(msg2, "pass2", NULL, NULL);
     openpgp_result_t result3 = openpgp_encrypt_symmetric(msg3, "pass3", NULL, NULL);
     
-    TEST_ASSERT(result1 == OPENPGP_ERROR_BRIDGE_CALL); // Within limits
-    TEST_ASSERT(result2 == OPENPGP_ERROR_SIZE_LIMIT);  // Over limit
-    TEST_ASSERT(result3 == OPENPGP_ERROR_BRIDGE_CALL); // Within limits
+    TEST_ASSERT(result1.error == OPENPGP_ERROR_BRIDGE_CALL); // Within limits
+    TEST_ASSERT(result2.error == OPENPGP_ERROR_SIZE_LIMIT);  // Over limit
+    TEST_ASSERT(result3.error == OPENPGP_ERROR_BRIDGE_CALL); // Within limits
     
     free(msg1);
     free(msg2);
@@ -217,13 +217,13 @@ static int test_concurrent_size_validation(void) {
     
     total_failed += run_isolated_test(test_message_size_boundaries, "Message Size Boundaries");
     total_failed += run_isolated_test(test_signature_data_boundaries, "Signature Data Boundaries");
-    total_failed += run_isolated_test(test_key_comment_boundaries, "Key Comment Boundaries");
+    total_failed += run_isolated_test(test_key_parameter_boundaries, "Key Parameter Boundaries");
     total_failed += run_isolated_test(test_flatbuffer_size_boundaries, "FlatBuffer Size Boundaries");
     total_failed += run_isolated_test(test_memory_allocation_patterns, "Memory Allocation Patterns");
     total_failed += run_isolated_test(test_concurrent_size_validation, "Concurrent Size Validation");
     
     printf("\n=== Large Data Testing Summary ===\n");
-    print_test_summary();
+    printf("Tests run: %d, Tests failed: %d\n", get_tests_run(), get_tests_failed());
     
     if (total_failed > 0) {
         printf(COLOR_RED "FAILED: %d test(s) failed\n" COLOR_RESET, total_failed);

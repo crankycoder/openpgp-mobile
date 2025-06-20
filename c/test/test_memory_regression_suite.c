@@ -68,9 +68,9 @@ typedef struct {
 }
 
 static void print_regression_summary(const test_results_t *results) {
-    printf("\n" "="*60 "\n");
+    printf("\n============================================================\n");
     printf("MEMORY REGRESSION TEST SUITE SUMMARY\n");
-    printf("="*60 "\n");
+    printf("============================================================\n");
     printf("Total Suites:      %d\n", results->total_suites);
     printf("Passed:            %d\n", results->passed_suites);
     printf("Failed:            %d\n", results->failed_suites);
@@ -94,9 +94,9 @@ static void print_regression_summary(const test_results_t *results) {
         }
     }
 }static void print_valgrind_instructions(void) {
-    printf("\n" "="*60 "\n");
+    printf("\n============================================================\n");
     printf("VALGRIND INTEGRATION INSTRUCTIONS\n");
-    printf("="*60 "\n");
+    printf("============================================================\n");
     printf("To run with valgrind memory checking:\n\n");
     
     printf("1. Run individual test suites:\n");

@@ -23,7 +23,7 @@ static int test_repeated_encryption_operations(void) {
     
     for (int i = 0; i < STRESS_ITERATIONS; i++) {
         openpgp_result_t result = openpgp_encrypt_symmetric(message, password, NULL, NULL);
-        TEST_ASSERT(result == OPENPGP_ERROR_BRIDGE_CALL); // Expected bridge error
+        TEST_ASSERT(result.error == OPENPGP_ERROR_BRIDGE_CALL); // Expected bridge error
         
         // Test isolation should prevent any memory accumulation between iterations
         if (i % 10 == 0) {
@@ -41,7 +41,7 @@ static int test_repeated_encryption_operations(void) {
     
     for (int i = 0; i < STRESS_ITERATIONS; i++) {
         openpgp_result_t result = openpgp_sign(data, key_id, NULL, NULL);
-        TEST_ASSERT(result == OPENPGP_ERROR_BRIDGE_CALL); // Expected bridge error
+        TEST_ASSERT(result.error == OPENPGP_ERROR_BRIDGE_CALL); // Expected bridge error
         
         if (i % 10 == 0) {
             printf("Completed %d signing operations\n", i + 1);
@@ -56,11 +56,11 @@ static int test_repeated_key_generation(void) {
     printf("Testing repeated key generation (%d iterations)...\n", STRESS_ITERATIONS);
     
     for (int i = 0; i < STRESS_ITERATIONS; i++) {
-        char comment[64];
-        snprintf(comment, sizeof(comment), "Stress test key %d", i);
+        char name[64];
+        snprintf(name, sizeof(name), "Stress test key %d", i);
         
-        openpgp_result_t result = openpgp_generate_key("rsa", 2048, comment, NULL, NULL);
-        TEST_ASSERT(result == OPENPGP_ERROR_BRIDGE_CALL); // Expected bridge error
+        openpgp_result_t result = openpgp_generate_key(name, "test@example.com", "password");
+        TEST_ASSERT(result.error == OPENPGP_ERROR_BRIDGE_CALL); // Expected bridge error
         
         if (i % 10 == 0) {
             printf("Completed %d key generations\n", i + 1);
@@ -81,7 +81,7 @@ static int test_rapid_sequential_operations(void) {
     
     for (int i = 0; i < RAPID_ITERATIONS; i++) {
         openpgp_result_t result = openpgp_encrypt_symmetric(msg, pass, NULL, NULL);
-        TEST_ASSERT(result == OPENPGP_ERROR_BRIDGE_CALL); // Expected bridge error
+        TEST_ASSERT(result.error == OPENPGP_ERROR_BRIDGE_CALL); // Expected bridge error
     }
     
     clock_t end = clock();
@@ -102,10 +102,10 @@ static int test_mixed_operation_patterns(void) {
         // Mix of different operations
         for (int i = 0; i < 5; i++) {
             openpgp_result_t result1 = openpgp_encrypt_symmetric(messages[i], passwords[i], NULL, NULL);
-            TEST_ASSERT(result1 == OPENPGP_ERROR_BRIDGE_CALL);
+            TEST_ASSERT(result1.error == OPENPGP_ERROR_BRIDGE_CALL);
             
             openpgp_result_t result2 = openpgp_sign(data[i], keys[i], NULL, NULL);
-            TEST_ASSERT(result2 == OPENPGP_ERROR_BRIDGE_CALL);
+            TEST_ASSERT(result2.error == OPENPGP_ERROR_BRIDGE_CALL);
         }
         
         if (cycle % 5 == 0) {
@@ -129,7 +129,7 @@ static int test_size_validation_under_stress(void) {
             valid_msg[1023] = '\0';
             
             openpgp_result_t result = openpgp_encrypt_symmetric(valid_msg, "test", NULL, NULL);
-            TEST_ASSERT(result == OPENPGP_ERROR_BRIDGE_CALL);
+            TEST_ASSERT(result.error == OPENPGP_ERROR_BRIDGE_CALL);
             
             free(valid_msg);
         } else {
@@ -139,7 +139,7 @@ static int test_size_validation_under_stress(void) {
             invalid_msg[2999] = '\0';
             
             openpgp_result_t result = openpgp_encrypt_symmetric(invalid_msg, "test", NULL, NULL);
-            TEST_ASSERT(result == OPENPGP_ERROR_SIZE_LIMIT);
+            TEST_ASSERT(result.error == OPENPGP_ERROR_SIZE_LIMIT);
             
             free(invalid_msg);
         }
@@ -165,7 +165,7 @@ static int test_large_batch_operations(void) {
     // Process entire batch
     for (int i = 0; i < LARGE_BATCH_SIZE; i++) {
         openpgp_result_t result = openpgp_encrypt_symmetric(messages[i], passwords[i], NULL, NULL);
-        TEST_ASSERT(result == OPENPGP_ERROR_BRIDGE_CALL);
+        TEST_ASSERT(result.error == OPENPGP_ERROR_BRIDGE_CALL);
     }
     
     // Cleanup batch data
@@ -195,7 +195,7 @@ int main() {
     total_failed += run_isolated_test(test_large_batch_operations, "Large Batch Operations");
     
     printf("\n=== Stress Testing Summary ===\n");
-    print_test_summary();
+    printf("Tests run: %d, Tests failed: %d\n", get_tests_run(), get_tests_failed());
     
     if (total_failed > 0) {
         printf(COLOR_RED "FAILED: %d test(s) failed\n" COLOR_RESET, total_failed);

@@ -18,25 +18,25 @@ static int test_null_parameter_handling(void) {
     openpgp_result_t result;
     
     result = openpgp_encrypt_symmetric(NULL, "password", NULL, NULL);
-    TEST_ASSERT(result == OPENPGP_ERROR_INVALID_ARGUMENT);
+    TEST_ASSERT(result.error == OPENPGP_ERROR_INVALID_INPUT);
     
     result = openpgp_encrypt_symmetric("message", NULL, NULL, NULL);
-    TEST_ASSERT(result == OPENPGP_ERROR_INVALID_ARGUMENT);
+    TEST_ASSERT(result.error == OPENPGP_ERROR_INVALID_INPUT);
     
     result = openpgp_encrypt_symmetric(NULL, NULL, NULL, NULL);
-    TEST_ASSERT(result == OPENPGP_ERROR_INVALID_ARGUMENT);
+    TEST_ASSERT(result.error == OPENPGP_ERROR_INVALID_INPUT);
     
     result = openpgp_sign(NULL, "key", NULL, NULL);
-    TEST_ASSERT(result == OPENPGP_ERROR_INVALID_ARGUMENT);
+    TEST_ASSERT(result.error == OPENPGP_ERROR_INVALID_INPUT);
     
     result = openpgp_sign("data", NULL, NULL, NULL);
-    TEST_ASSERT(result == OPENPGP_ERROR_INVALID_ARGUMENT);
+    TEST_ASSERT(result.error == OPENPGP_ERROR_INVALID_INPUT);
     
-    result = openpgp_generate_key(NULL, 2048, "comment", NULL, NULL);
-    TEST_ASSERT(result == OPENPGP_ERROR_INVALID_ARGUMENT);
+    result = openpgp_generate_key(NULL, "email", "passphrase");
+    TEST_ASSERT(result.error == OPENPGP_ERROR_INVALID_INPUT);
     
-    result = openpgp_generate_key("rsa", 2048, NULL, NULL, NULL);
-    TEST_ASSERT(result == OPENPGP_ERROR_BRIDGE_CALL); // NULL comment is allowed
+    result = openpgp_generate_key("name", NULL, "passphrase");
+    TEST_ASSERT(result.error == OPENPGP_ERROR_BRIDGE_CALL); // NULL email may be allowed
     
     printf("NULL parameter handling tests passed\n");
     return 0;
@@ -47,22 +47,22 @@ static int test_null_parameter_handling(void) {
     openpgp_result_t result;
     
     result = openpgp_encrypt_symmetric("", "password", NULL, NULL);
-    TEST_ASSERT(result == OPENPGP_ERROR_BRIDGE_CALL); // Empty message allowed
+    TEST_ASSERT(result.error == OPENPGP_ERROR_BRIDGE_CALL); // Empty message allowed
     
     result = openpgp_encrypt_symmetric("message", "", NULL, NULL);
-    TEST_ASSERT(result == OPENPGP_ERROR_BRIDGE_CALL); // Empty password allowed
+    TEST_ASSERT(result.error == OPENPGP_ERROR_BRIDGE_CALL); // Empty password allowed
     
     result = openpgp_sign("", "key", NULL, NULL);
-    TEST_ASSERT(result == OPENPGP_ERROR_BRIDGE_CALL); // Empty data allowed
+    TEST_ASSERT(result.error == OPENPGP_ERROR_BRIDGE_CALL); // Empty data allowed
     
     result = openpgp_sign("data", "", NULL, NULL);
-    TEST_ASSERT(result == OPENPGP_ERROR_BRIDGE_CALL); // Empty key allowed
+    TEST_ASSERT(result.error == OPENPGP_ERROR_BRIDGE_CALL); // Empty key allowed
     
-    result = openpgp_generate_key("", 2048, "comment", NULL, NULL);
-    TEST_ASSERT(result == OPENPGP_ERROR_BRIDGE_CALL); // Empty algorithm allowed
+    result = openpgp_generate_key("", "email", "passphrase");
+    TEST_ASSERT(result.error == OPENPGP_ERROR_BRIDGE_CALL); // Empty name allowed
     
-    result = openpgp_generate_key("rsa", 2048, "", NULL, NULL);
-    TEST_ASSERT(result == OPENPGP_ERROR_BRIDGE_CALL); // Empty comment allowed
+    result = openpgp_generate_key("name", "", "passphrase");
+    TEST_ASSERT(result.error == OPENPGP_ERROR_BRIDGE_CALL); // Empty email allowed
     
     printf("Empty string handling tests passed\n");
     return 0;
@@ -109,12 +109,12 @@ static int test_extreme_size_boundaries(void) {
     
     for (size_t i = 0; i < sizeof(special_messages) / sizeof(special_messages[0]); i++) {
         openpgp_result_t result = openpgp_encrypt_symmetric(special_messages[i], "password", NULL, NULL);
-        TEST_ASSERT(result == OPENPGP_ERROR_BRIDGE_CALL); // Should handle gracefully
+        TEST_ASSERT(result.error == OPENPGP_ERROR_BRIDGE_CALL); // Should handle gracefully
     }
     
     for (size_t i = 0; i < sizeof(special_passwords) / sizeof(special_passwords[0]); i++) {
         openpgp_result_t result = openpgp_encrypt_symmetric("message", special_passwords[i], NULL, NULL);
-        TEST_ASSERT(result == OPENPGP_ERROR_BRIDGE_CALL); // Should handle gracefully
+        TEST_ASSERT(result.error == OPENPGP_ERROR_BRIDGE_CALL); // Should handle gracefully
     }
     
     printf("Special character handling tests passed\n");
@@ -127,17 +127,20 @@ static int test_integer_overflow_scenarios(void) {
     // Test key sizes that might cause issues
     openpgp_result_t result;
     
-    // Test negative key sizes (should be handled by type system, but test anyway)
-    result = openpgp_generate_key("rsa", -1, "comment", NULL, NULL);
-    TEST_ASSERT(result == OPENPGP_ERROR_BRIDGE_CALL); // Negative converted to large positive
+    // Test basic key generation with valid parameters
+    result = openpgp_generate_key("Test User", "test@example.com", "password");
+    TEST_ASSERT(result.error == OPENPGP_ERROR_BRIDGE_CALL); // Should be handled by bridge
     
-    // Test zero key size
-    result = openpgp_generate_key("rsa", 0, "comment", NULL, NULL);
-    TEST_ASSERT(result == OPENPGP_ERROR_BRIDGE_CALL); // Should be handled by bridge
+    // Test with NULL passphrase
+    result = openpgp_generate_key("Test User", "test@example.com", NULL);
+    TEST_ASSERT(result.error == OPENPGP_ERROR_BRIDGE_CALL); // NULL passphrase may be allowed
     
-    // Test extremely large key size
-    result = openpgp_generate_key("rsa", INT_MAX, "comment", NULL, NULL);
-    TEST_ASSERT(result == OPENPGP_ERROR_BRIDGE_CALL); // Should be handled by bridge
+    // Test extremely long names (potential buffer issues)
+    char long_name[1000];
+    memset(long_name, 'A', 999);
+    long_name[999] = '\0';
+    result = openpgp_generate_key(long_name, "test@example.com", "password");
+    TEST_ASSERT(result.error == OPENPGP_ERROR_BRIDGE_CALL); // Should be handled by bridge
     
     printf("Integer overflow scenario tests passed\n");
     return 0;
@@ -155,7 +158,7 @@ static int test_integer_overflow_scenarios(void) {
         test_msg[1023] = '\0';
         
         openpgp_result_t result = openpgp_encrypt_symmetric(test_msg, "password", NULL, NULL);
-        TEST_ASSERT(result == OPENPGP_ERROR_BRIDGE_CALL); // Should succeed allocation checks
+        TEST_ASSERT(result.error == OPENPGP_ERROR_BRIDGE_CALL); // Should succeed allocation checks
         
         free(test_msg);
     }
@@ -174,19 +177,19 @@ static int test_concurrent_edge_conditions(void) {
     for (int i = 0; i < 20; i++) {
         if (i % 3 == 0) {
             openpgp_result_t result = openpgp_encrypt_symmetric(NULL, "pass", NULL, NULL);
-            TEST_ASSERT(result == OPENPGP_ERROR_INVALID_ARGUMENT);
+            TEST_ASSERT(result.error == OPENPGP_ERROR_INVALID_INPUT);
         } else if (i % 3 == 1) {
             char *oversized = malloc(3000);
             memset(oversized, 'O', 2999);
             oversized[2999] = '\0';
             
             openpgp_result_t result = openpgp_encrypt_symmetric(oversized, "pass", NULL, NULL);
-            TEST_ASSERT(result == OPENPGP_ERROR_SIZE_LIMIT);
+            TEST_ASSERT(result.error == OPENPGP_ERROR_SIZE_LIMIT);
             
             free(oversized);
         } else {
             openpgp_result_t result = openpgp_encrypt_symmetric("valid", "pass", NULL, NULL);
-            TEST_ASSERT(result == OPENPGP_ERROR_BRIDGE_CALL);
+            TEST_ASSERT(result.error == OPENPGP_ERROR_BRIDGE_CALL);
         }
     }
     
@@ -207,7 +210,7 @@ static int test_concurrent_edge_conditions(void) {
     total_failed += run_isolated_test(test_concurrent_edge_conditions, "Concurrent Edge Conditions");
     
     printf("\n=== Edge Cases Testing Summary ===\n");
-    print_test_summary();
+    printf("Tests run: %d, Tests failed: %d\n", get_tests_run(), get_tests_failed());
     
     if (total_failed > 0) {
         printf(COLOR_RED "FAILED: %d test(s) failed\n" COLOR_RESET, total_failed);
